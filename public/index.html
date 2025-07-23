@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InstaBot Manager - Full Solution</title>
+    <title>InstaBot Manager - Complete Automation Solution</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #405DE6;
@@ -27,14 +27,13 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Poppins', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
         
         body {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             min-height: 100vh;
             color: var(--dark);
-            padding: 20px;
             line-height: 1.6;
         }
         
@@ -48,13 +47,13 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            min-height: 90vh;
+            min-height: 100vh;
         }
         
         header {
             background: var(--gradient);
             color: white;
-            padding: 25px 40px;
+            padding: 20px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -73,7 +72,7 @@
         }
         
         .logo h1 {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
         }
         
@@ -82,9 +81,107 @@
             opacity: 0.9;
         }
         
+        .search-container {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 20px;
+            position: relative;
+        }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            padding: 8px 15px;
+            transition: var(--transition);
+        }
+        
+        .search-box:focus-within {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .search-box i {
+            color: rgba(255, 255, 255, 0.8);
+            margin-right: 10px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .search-box input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+            z-index: 100;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .search-results.active {
+            display: block;
+        }
+        
+        .search-results h4 {
+            padding: 15px 20px;
+            font-size: 16px;
+            color: var(--gray);
+            border-bottom: 1px solid var(--light-gray);
+        }
+        
+        .result-item {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .result-item:hover {
+            background: rgba(64, 93, 230, 0.05);
+        }
+        
+        .result-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+        
+        .result-item .user-info {
+            flex: 1;
+        }
+        
+        .result-item .user-info h5 {
+            font-size: 16px;
+            margin-bottom: 3px;
+        }
+        
+        .result-item .user-info p {
+            font-size: 13px;
+            color: var(--gray);
+        }
+        
         .nav-links {
             display: flex;
-            gap: 30px;
+            gap: 20px;
         }
         
         .nav-links a {
@@ -95,6 +192,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 14px;
         }
         
         .nav-links a:hover {
@@ -183,12 +281,14 @@
         
         .section-header {
             margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .section-header h2 {
             font-size: 28px;
             font-weight: 700;
-            margin-bottom: 10px;
             color: var(--dark);
         }
         
@@ -196,6 +296,28 @@
             color: var(--gray);
             font-size: 16px;
             max-width: 600px;
+        }
+        
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid var(--light-gray);
+            border-radius: 30px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
         }
         
         .stats-cards {
@@ -584,6 +706,73 @@
             font-weight: 500;
         }
         
+        .deploy-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .deploy-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .deploy-icon {
+            font-size: 32px;
+            color: var(--primary);
+        }
+        
+        .deploy-steps {
+            counter-reset: step-counter;
+            margin-left: 20px;
+        }
+        
+        .deploy-step {
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 25px;
+        }
+        
+        .deploy-step:before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 30px;
+            height: 30px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .deploy-step h4 {
+            margin-bottom: 10px;
+        }
+        
+        .deploy-step p {
+            color: var(--gray);
+            margin-bottom: 10px;
+        }
+        
+        .deploy-code {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow-x: auto;
+            font-family: monospace;
+        }
+        
         @media (max-width: 992px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
@@ -605,11 +794,19 @@
                 flex-direction: column;
                 gap: 20px;
                 text-align: center;
+                padding: 20px;
+            }
+            
+            .search-container {
+                order: 3;
+                max-width: 100%;
+                margin: 10px 0 0;
             }
             
             .nav-links {
-                flex-wrap: wrap;
+                width: 100%;
                 justify-content: center;
+                flex-wrap: wrap;
             }
             
             .stats-cards {
@@ -630,6 +827,16 @@
                 width: 100%;
                 justify-content: center;
             }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .filter-bar {
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
@@ -642,6 +849,63 @@
                 </div>
                 <div>
                     <h1>InstaBot <span>Manager</span></h1>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search users, comments, analytics...">
+                </div>
+                <div class="search-results" id="searchResults">
+                    <h4>Users</h4>
+                    <div class="result-item">
+                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Profile">
+                        <div class="user-info">
+                            <h5>Emma Johnson</h5>
+                            <p>@emma_j - 12k followers</p>
+                        </div>
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    <div class="result-item">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Profile">
+                        <div class="user-info">
+                            <h5>Michael Chen</h5>
+                            <p>@michaelc - 8.5k followers</p>
+                        </div>
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    
+                    <h4>Comments</h4>
+                    <div class="result-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-comment"></i>
+                        </div>
+                        <div class="user-info">
+                            <h5>"Love this product! Send me more info"</h5>
+                            <p>@sarahm - 2 hours ago</p>
+                        </div>
+                    </div>
+                    <div class="result-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-comment"></i>
+                        </div>
+                        <div class="user-info">
+                            <h5>"Where can I buy this? DM me details"</h5>
+                            <p>@davidk - 5 hours ago</p>
+                        </div>
+                    </div>
+                    
+                    <h4>Analytics</h4>
+                    <div class="result-item">
+                        <div class="activity-icon" style="background: rgba(76, 175, 80, 0.1); color: #4CAF50;">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="user-info">
+                            <h5>Engagement Report - July 2023</h5>
+                            <p>24.5% increase from last month</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -662,6 +926,7 @@
                         <li><a href="#"><i class="fas fa-robot"></i> Automations</a></li>
                         <li><a href="#"><i class="fas fa-comment"></i> Comments</a></li>
                         <li><a href="#"><i class="fas fa-paper-plane"></i> Messages</a></li>
+                        <li><a href="#"><i class="fas fa-search"></i> Search</a></li>
                     </ul>
                 </div>
                 
@@ -687,19 +952,27 @@
             
             <div class="main-content">
                 <div class="section-header">
-                    <h2>Instagram Automation Dashboard</h2>
-                    <p>Manage your Instagram automations, monitor activity, and grow your audience with AI-powered tools.</p>
+                    <div>
+                        <h2>Instagram Automation Dashboard</h2>
+                        <p>Manage your Instagram automations, monitor activity, and grow your audience</p>
+                    </div>
+                    <div class="filter-bar">
+                        <button class="filter-btn active">Today</button>
+                        <button class="filter-btn">Week</button>
+                        <button class="filter-btn">Month</button>
+                        <button class="filter-btn">All</button>
+                    </div>
                 </div>
                 
-                <div id="userDashboard" style="display: none;">
+                <div id="userDashboard">
                     <div class="user-info-card">
                         <div class="user-avatar" id="userAvatar">
                             <i class="fas fa-user"></i>
                         </div>
                         <div class="user-info">
-                            <h2 id="username">@username</h2>
+                            <h2 id="username">@your_instagram</h2>
                             <p>Instagram Business Account</p>
-                            <div class="connected-date">Connected on <span id="connectedDate">Jan 1, 2023</span></div>
+                            <div class="connected-date">Connected on <span id="connectedDate">July 23, 2025</span></div>
                         </div>
                     </div>
                     
@@ -709,7 +982,7 @@
                                 <i class="fas fa-comment"></i>
                             </div>
                             <div class="stat-info">
-                                <h3 id="commentsProcessed">1,247</h3>
+                                <h3>1,247</h3>
                                 <p>Comments Processed</p>
                             </div>
                         </div>
@@ -719,7 +992,7 @@
                                 <i class="fas fa-paper-plane"></i>
                             </div>
                             <div class="stat-info">
-                                <h3 id="repliesSent">864</h3>
+                                <h3>864</h3>
                                 <p>Auto Replies Sent</p>
                             </div>
                         </div>
@@ -729,7 +1002,7 @@
                                 <i class="fas fa-users"></i>
                             </div>
                             <div class="stat-info">
-                                <h3 id="engagementRate">24.5%</h3>
+                                <h3>24.5%</h3>
                                 <p>Engagement Increase</p>
                             </div>
                         </div>
@@ -739,8 +1012,8 @@
                                 <i class="fas fa-bolt"></i>
                             </div>
                             <div class="stat-info">
-                                <h3 id="successRate">98%</h3>
-                                <p>Automation Success Rate</p>
+                                <h3>98%</h3>
+                                <p>Automation Success</p>
                             </div>
                         </div>
                     </div>
@@ -748,109 +1021,190 @@
                     <div class="dashboard-grid">
                         <div class="card">
                             <div class="card-header">
-                                <h3>Active Triggers</h3>
-                                <button class="btn">Add Trigger</button>
+                                <h3>Recent Activity</h3>
+                                <button class="btn">View All</button>
                             </div>
-                            <ul class="trigger-list" id="triggerList">
-                                <li>
-                                    <div>
-                                        <strong>"Send me"</strong>
-                                        <p>Triggers DM with product info</p>
+                            <div class="activity-log" id="activityLog">
+                                <div class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-comment"></i>
                                     </div>
-                                    <span class="trigger-badge">Active</span>
-                                </li>
-                                <li>
-                                    <div>
-                                        <strong>"DM me"</strong>
-                                        <p>Sends contact information</p>
+                                    <div class="activity-content">
+                                        <h4>Comment processed</h4>
+                                        <p>Reply sent to @user123: "Can you send me more info?"</p>
+                                        <div class="activity-time">2 minutes ago</div>
                                     </div>
-                                    <span class="trigger-badge">Active</span>
-                                </li>
-                                <li>
-                                    <div>
-                                        <strong>"Info"</strong>
-                                        <p>Provides detailed information</p>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-paper-plane"></i>
                                     </div>
-                                    <span class="trigger-badge">Active</span>
-                                </li>
-                                <li>
-                                    <div>
-                                        <strong>"Details"</strong>
-                                        <p>Sends spec sheet</p>
+                                    <div class="activity-content">
+                                        <h4>Direct message sent</h4>
+                                        <p>Sent product catalog to @user456</p>
+                                        <div class="activity-time">15 minutes ago</div>
                                     </div>
-                                    <span class="trigger-badge">Active</span>
-                                </li>
-                            </ul>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-user-plus"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <h4>New follower</h4>
+                                        <p>@jessicaw started following you</p>
+                                        <div class="activity-time">1 hour ago</div>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <h4>Automation updated</h4>
+                                        <p>Added "details" to trigger phrases</p>
+                                        <div class="activity-time">2 hours ago</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="card">
                             <div class="card-header">
-                                <h3>Recent Activity</h3>
+                                <h3>Top Engagements</h3>
                             </div>
-                            <div class="activity-log" id="activityLog">
-                                <!-- Activity items will be added here -->
+                            <div class="activity-log">
+                                <div class="activity-item">
+                                    <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%;">
+                                    <div class="activity-content">
+                                        <h4>@sophiam</h4>
+                                        <p>12 comments, 5 shares</p>
+                                        <div class="activity-time">Influencer</div>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <img src="https://randomuser.me/api/portraits/men/41.jpg" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%;">
+                                    <div class="activity-content">
+                                        <h4>@alex_t</h4>
+                                        <p>8 comments, 3 shares</p>
+                                        <div class="activity-time">Brand Ambassador</div>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%;">
+                                    <div class="activity-content">
+                                        <h4>@emma_j</h4>
+                                        <p>7 comments, 2 shares</p>
+                                        <div class="activity-time">Potential Customer</div>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <img src="https://randomuser.me/api/portraits/men/22.jpg" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%;">
+                                    <div class="activity-content">
+                                        <h4>@davidk</h4>
+                                        <p>6 comments, 4 shares</p>
+                                        <div class="activity-time">Loyal Customer</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="api-section">
-                        <div class="api-header">
-                            <i class="fas fa-code api-icon"></i>
-                            <h3>API Endpoints</h3>
+                    <div class="deploy-section">
+                        <div class="deploy-header">
+                            <i class="fas fa-cloud-upload-alt deploy-icon"></i>
+                            <h3>Render Deployment Guide</h3>
                         </div>
                         
-                        <div class="api-card">
-                            <div>
-                                <span class="api-method">GET</span>
-                                <span class="api-url">/shell/1/art4gram</span>
+                        <div class="deploy-steps">
+                            <div class="deploy-step">
+                                <h4>1. Create a Render Account</h4>
+                                <p>Sign up at <a href="https://render.com" target="_blank">render.com</a> if you don't have an account</p>
                             </div>
-                            <div class="api-description">
-                                Executes the Art4Gram shell command and returns the operation status.
+                            
+                            <div class="deploy-step">
+                                <h4>2. Prepare Your Project</h4>
+                                <p>Create these files in a new directory:</p>
+                                <div class="deploy-code">
+// Directory structure:
+├── server.js
+├── public/
+│   └── index.html (this file)
+├── package.json
+└── .gitignore
+                                </div>
                             </div>
-                            <button class="btn-test" onclick="testArt4Gram()">Test Endpoint</button>
-                            <div class="api-response" id="apiResponse">
-                                <!-- API response will appear here -->
+                            
+                            <div class="deploy-step">
+                                <h4>3. Create package.json</h4>
+                                <p>Add this content to package.json:</p>
+                                <div class="deploy-code">
+{
+  "name": "instagram-bot",
+  "version": "1.0.0",
+  "description": "Instagram Automation Tool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="connectSection" class="connection-section">
-                    <div class="connection-icon">
-                        <i class="fas fa-plug"></i>
-                    </div>
-                    
-                    <div class="connection-content">
-                        <h2>Connect Your Instagram Account</h2>
-                        <p>Securely connect your Instagram Business Account to start automating your engagement. Our platform uses Instagram's official OAuth login to ensure maximum security and compliance.</p>
-                        <button class="btn-primary" id="connectBtn">
-                            <i class="fab fa-instagram"></i> Connect Instagram Account
-                        </button>
-                    </div>
-                    
-                    <div class="features-grid">
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-comment-dots"></i>
+                            
+                            <div class="deploy-step">
+                                <h4>4. Create server.js</h4>
+                                <p>Add this backend code:</p>
+                                <div class="deploy-code">
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Serve static files
+app.use(express.static('public'));
+
+// Instagram OAuth endpoint
+app.get('/auth/instagram', (req, res) => {
+  // OAuth implementation would go here
+  res.redirect('/?session=connected');
+});
+
+// Webhook endpoint
+app.post('/webhook', (req, res) => {
+  // Webhook processing would go here
+  res.sendStatus(200);
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+                                </div>
                             </div>
-                            <h3>Comment Triggers</h3>
-                            <p>Automatically detect keywords like "send me" in comments and trigger instant responses.</p>
-                        </div>
-                        
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-robot"></i>
+                            
+                            <div class="deploy-step">
+                                <h4>5. Push to GitHub</h4>
+                                <p>Create a repository and push your code</p>
                             </div>
-                            <h3>Auto Replies</h3>
-                            <p>Send personalized DMs or comment replies based on user triggers and behavior.</p>
-                        </div>
-                        
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-chart-line"></i>
+                            
+                            <div class="deploy-step">
+                                <h4>6. Deploy to Render</h4>
+                                <p>
+                                    - Create a new Web Service on Render<br>
+                                    - Connect your GitHub repository<br>
+                                    - Set environment variables in Render dashboard:<br>
+                                    &nbsp;&nbsp;FACEBOOK_APP_ID, FACEBOOK_APP_SECRET,<br>
+                                    &nbsp;&nbsp;REDIRECT_URI, WEBHOOK_VERIFY_TOKEN<br>
+                                    - Deploy!
+                                </p>
                             </div>
-                            <h3>Analytics</h3>
-                            <p>Track performance and engagement metrics to optimize your automation strategy.</p>
                         </div>
                     </div>
                 </div>
@@ -859,72 +1213,45 @@
     </div>
 
     <script>
-        // DOM Elements
-        const connectBtn = document.getElementById('connectBtn');
-        const connectSection = document.getElementById('connectSection');
-        const userDashboard = document.getElementById('userDashboard');
-        const usernameEl = document.getElementById('username');
-        const connectedDateEl = document.getElementById('connectedDate');
-        const activityLog = document.getElementById('activityLog');
-        const apiResponse = document.getElementById('apiResponse');
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
         
-        // Get session ID from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('session');
+        searchInput.addEventListener('focus', () => {
+            searchResults.classList.add('active');
+        });
         
-        // Check if user is connected
-        if (sessionId) {
-            fetchUserData(sessionId);
-        } else {
-            connectSection.style.display = 'block';
-            userDashboard.style.display = 'none';
-        }
+        searchInput.addEventListener('blur', () => {
+            setTimeout(() => {
+                searchResults.classList.remove('active');
+            }, 200);
+        });
         
-        // Fetch user data from backend
-        async function fetchUserData(sessionId) {
-            try {
-                // Simulate API call in this single-file implementation
-                // In a real app, this would be a fetch to the backend
-                const userData = {
-                    id: '123456789',
-                    username: 'your_instagram',
-                    connected_at: new Date().toISOString()
-                };
-                
-                displayUserData(userData);
-                
-                // Simulate success
-                addActivityItem('Account connected', `Connected Instagram account @${userData.username}`, 'just now');
-                addActivityItem('Automation started', 'Comment trigger detection is now active', '1 minute ago');
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Session expired. Please reconnect your account.');
-                connectSection.style.display = 'block';
-                userDashboard.style.display = 'none';
+        searchInput.addEventListener('input', (e) => {
+            const value = e.target.value.toLowerCase();
+            if (value.length > 0) {
+                searchResults.classList.add('active');
+            } else {
+                searchResults.classList.remove('active');
             }
-        }
+        });
         
-        // Display user data
-        function displayUserData(userData) {
-            connectSection.style.display = 'none';
-            userDashboard.style.display = 'block';
-            
-            usernameEl.textContent = `@${userData.username}`;
-            const date = new Date(userData.connected_at);
-            connectedDateEl.textContent = date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
+        // Filter buttons
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
             });
-        }
+        });
         
-        // Add activity item
+        // Add sample activity
         function addActivityItem(title, description, time) {
             const activityItem = document.createElement('div');
             activityItem.className = 'activity-item';
             activityItem.innerHTML = `
                 <div class="activity-icon">
-                    <i class="fas fa-check-circle"></i>
+                    <i class="fas fa-comment"></i>
                 </div>
                 <div class="activity-content">
                     <h4>${title}</h4>
@@ -932,78 +1259,22 @@
                     <div class="activity-time">${time}</div>
                 </div>
             `;
-            activityLog.prepend(activityItem);
-        }
-        
-        // Connect button handler
-        connectBtn.addEventListener('click', () => {
-            // Redirect to backend authentication endpoint
-            alert('In a real implementation, this would redirect to Instagram OAuth');
-            // Simulate successful connection
-            const sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
-            window.location.href = `?session=${sessionId}`;
-        });
-        
-        // Test Art4Gram endpoint
-        async function testArt4Gram() {
-            apiResponse.innerHTML = '<p>Testing Art4Gram endpoint...</p>';
-            
-            try {
-                // Simulate API call to the backend
-                // In a real app, this would be: fetch('/shell/1/art4gram')
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                const response = {
-                    status: 'success',
-                    message: 'Art4Gram processed successfully',
-                    data: {
-                        operation: 'shell_command',
-                        result: 'completed',
-                        timestamp: new Date().toISOString(),
-                        output: 'Art4Gram processing complete\nGenerated 4 creative assets'
-                    }
-                };
-                
-                apiResponse.innerHTML = `
-                    <p>Response:</p>
-                    <pre>${JSON.stringify(response, null, 2)}</pre>
-                `;
-                
-                addActivityItem('API Test', 'Art4Gram endpoint executed successfully', 'just now');
-            } catch (error) {
-                apiResponse.innerHTML = `
-                    <p>Error:</p>
-                    <pre>${error.message}</pre>
-                `;
-            }
+            document.getElementById('activityLog').prepend(activityItem);
         }
         
         // Simulate activity updates
         setInterval(() => {
-            if (userDashboard.style.display === 'block') {
-                const commentsProcessed = document.getElementById('commentsProcessed');
-                const currentValue = parseInt(commentsProcessed.textContent.replace(',', ''));
-                commentsProcessed.textContent = (currentValue + Math.floor(Math.random() * 5)).toLocaleString();
-                
-                const repliesSent = document.getElementById('repliesSent');
-                const repliesValue = parseInt(repliesSent.textContent.replace(',', ''));
-                repliesSent.textContent = (repliesValue + Math.floor(Math.random() * 3)).toLocaleString();
-                
-                // Add random activity
-                if (Math.random() > 0.7) {
-                    const users = ['@johndoe', '@janedoe', '@alexsmith', '@emilyj'];
-                    const triggers = ['send me', 'DM me', 'info', 'details'];
-                    const user = users[Math.floor(Math.random() * users.length)];
-                    const trigger = triggers[Math.floor(Math.random() * triggers.length)];
-                    
-                    addActivityItem(
-                        'Comment processed', 
-                        `Replied to ${user}: "Can you ${trigger} more info?"`, 
-                        `${Math.floor(Math.random() * 10) + 1} minutes ago`
-                    );
-                }
-            }
-        }, 10000);
+            const users = ['@johndoe', '@janedoe', '@alexsmith', '@emilyj'];
+            const triggers = ['send me', 'DM me', 'info', 'details'];
+            const user = users[Math.floor(Math.random() * users.length)];
+            const trigger = triggers[Math.floor(Math.random() * triggers.length)];
+            
+            addActivityItem(
+                'Comment processed', 
+                `Replied to ${user}: "Can you ${trigger} more info?"`, 
+                `${Math.floor(Math.random() * 10) + 1} minutes ago`
+            );
+        }, 15000);
     </script>
 </body>
 </html>
