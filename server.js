@@ -3,6 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const bodyParser = require('body-parser');
+const session = require('express-session');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,15 +12,25 @@ const PORT = process.env.PORT || 3000;
 const CONFIG = {
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID,
   FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET,
-  REDIRECT_URI: process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/instagram/callback',
+  REDIRECT_URI: process.env.REDIRECT_URI || 'https://yourdomain.com/auth/instagram/callback',
   WEBHOOK_VERIFY_TOKEN: process.env.WEBHOOK_VERIFY_TOKEN,
   INSTAGRAM_API_VERSION: 'v19.0',
-  SESSION_SECRET: process.env.SESSION_SECRET || 'your-secret-key'
+  SESSION_SECRET: process.env.SESSION_SECRET || 'complex-secret-key'
 };
+
+// Session middleware
+app.use(session({
+  secret: CONFIG.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    secure: process.env.NODE_ENV === 'production'
+  }
+}));
 
 // In-memory storage for demo (use database in production)
 const users = {};
-const sessions = {};
 
 // Middleware
 app.use(bodyParser.json());
@@ -29,9 +40,9 @@ app.use(express.static('public'));
 // Instagram OAuth Routes
 app.get('/auth/instagram', (req, res) => {
   const state = uuidv4();
-  sessions[state] = { state };
+  req.session.oauthState = state;
   
-  const authUrl = `https://www.instagram.com/accounts/login/?next=/oauth/authorize?` +
+  const authUrl = `https://www.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/dialog/oauth?` +
     `client_id=${CONFIG.FACEBOOK_APP_ID}` +
     `&redirect_uri=${encodeURIComponent(CONFIG.REDIRECT_URI)}` +
     `&state=${state}` +
@@ -45,60 +56,53 @@ app.get('/auth/instagram/callback', async (req, res) => {
   const { code, state } = req.query;
   
   // Validate state
-  if (!sessions[state]) {
+  if (!req.session.oauthState || req.session.oauthState !== state) {
     return res.status(401).send('Invalid state parameter');
   }
   
   try {
     // Exchange code for access token
-    const tokenResponse = await axios.post(
-      `https://api.instagram.com/oauth/access_token`,
+    const tokenResponse = await axios.get(
+      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/oauth/access_token`,
       {
-        client_id: CONFIG.FACEBOOK_APP_ID,
-        client_secret: CONFIG.FACEBOOK_APP_SECRET,
-        grant_type: 'authorization_code',
-        redirect_uri: CONFIG.REDIRECT_URI,
-        code
-      },
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+        params: {
+          client_id: CONFIG.FACEBOOK_APP_ID,
+          client_secret: CONFIG.FACEBOOK_APP_SECRET,
+          redirect_uri: CONFIG.REDIRECT_URI,
+          code
         }
       }
     );
     
-    const { access_token, user_id } = tokenResponse.data;
+    const { access_token } = tokenResponse.data;
     
     // Get user profile
     const profileResponse = await axios.get(
-      `https://graph.instagram.com/${user_id}`,
+      `https://graph.instagram.com/${CONFIG.INSTAGRAM_API_VERSION}/me`,
       {
         params: {
-          fields: 'id,username,account_type',
+          fields: 'id,username',
           access_token
         }
       }
     );
     
     const userProfile = profileResponse.data;
+    const userId = userProfile.id;
     
     // Store user data
-    users[user_id] = {
-      id: user_id,
+    users[userId] = {
+      id: userId,
       username: userProfile.username,
       access_token,
       connected_at: new Date()
     };
     
-    // Create session
-    const sessionId = uuidv4();
-    sessions[sessionId] = {
-      userId: user_id,
-      expires: Date.now() + 1000 * 60 * 60 * 24 // 24 hours
-    };
+    // Store user in session
+    req.session.userId = userId;
     
-    // Redirect to dashboard with session ID
-    res.redirect(`/dashboard.html?session=${sessionId}`);
+    // Redirect to dashboard
+    res.redirect('/dashboard.html');
   } catch (error) {
     console.error('OAuth Error:', error.response?.data || error.message);
     handleOAuthError(error, res);
@@ -161,7 +165,7 @@ async function handleComment(commentData) {
       
       // Send DM to the commenter
       await axios.post(
-        `https://graph.instagram.com/${CONFIG.INSTAGRAM_API_VERSION}/${from.id}/messages`,
+        `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/${from.id}/messages`,
         {
           recipient: { id: from.id },
           message: { 
@@ -173,9 +177,7 @@ async function handleComment(commentData) {
           }
         },
         {
-          headers: {
-            'Authorization': `Bearer ${userAccessToken}`
-          }
+          params: { access_token: userAccessToken }
         }
       );
       
@@ -183,14 +185,12 @@ async function handleComment(commentData) {
       
       // Reply to the comment
       await axios.post(
-        `https://graph.instagram.com/${CONFIG.INSTAGRAM_API_VERSION}/${commentId}/replies`,
+        `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/${commentId}/replies`,
         {
           message: "Hi! We've sent you a direct message with the information you requested. Please check your DMs!"
         },
         {
-          headers: {
-            'Authorization': `Bearer ${userAccessToken}`
-          }
+          params: { access_token: userAccessToken }
         }
       );
       
@@ -228,13 +228,11 @@ function handleOAuthError(error, res) {
 
 // User session validation
 app.get('/api/user', (req, res) => {
-  const sessionId = req.query.session;
-  
-  if (!sessionId || !sessions[sessionId] || sessions[sessionId].expires < Date.now()) {
+  if (!req.session.userId) {
     return res.status(401).json({ error: 'Invalid session' });
   }
   
-  const userId = sessions[sessionId].userId;
+  const userId = req.session.userId;
   const user = users[userId];
   
   if (!user) {
@@ -252,5 +250,5 @@ app.get('/api/user', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Instagram OAuth URL: ${CONFIG.REDIRECT_URI.replace('/callback', '')}`);
-  console.log(`Webhook URL: https://work-flow-ig-1.onrender.com/webhook`);
+  console.log(`Webhook URL: https://yourdomain.com/webhook`);
 });
