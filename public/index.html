@@ -836,116 +836,108 @@
         </div>
     </div>
 
-    <script>
-        // DOM Elements
-        const connectBtn = document.getElementById('connectBtn');
-        const connectSection = document.getElementById('connectSection');
-        const userDashboard = document.getElementById('userDashboard');
-        const usernameEl = document.getElementById('username');
-        const connectedDateEl = document.getElementById('connectedDate');
-        const activityLog = document.getElementById('activityLog');
-        
-        // Get session ID from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('session');
-        
-        // Check if user is connected
-        if (sessionId) {
-            fetchUserData(sessionId);
-        } else {
+<script>
+    // DOM Elements
+    const connectBtn = document.getElementById('connectBtn');
+    const connectSection = document.getElementById('connectSection');
+    const userDashboard = document.getElementById('userDashboard');
+    const usernameEl = document.getElementById('username');
+    const connectedDateEl = document.getElementById('connectedDate');
+    const activityLog = document.getElementById('activityLog');
+    
+    // Check if user is connected
+    fetchUserData();
+    
+    // Fetch user data from backend
+    async function fetchUserData() {
+        try {
+            const response = await fetch('/api/user');
+            if (!response.ok) {
+                throw new Error('Failed to fetch user data');
+            }
+            
+            const userData = await response.json();
+            displayUserData(userData);
+        } catch (error) {
+            console.log('User not connected:', error.message);
             connectSection.style.display = 'block';
             userDashboard.style.display = 'none';
         }
+    }
+    
+    // Display user data
+    function displayUserData(userData) {
+        connectSection.style.display = 'none';
+        userDashboard.style.display = 'block';
         
-        // Fetch user data from backend
-        async function fetchUserData(sessionId) {
-            try {
-                const response = await fetch(`/api/user?session=${sessionId}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch user data');
-                }
-                
-                const userData = await response.json();
-                displayUserData(userData);
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Session expired. Please reconnect your account.');
-                connectSection.style.display = 'block';
-                userDashboard.style.display = 'none';
-            }
-        }
-        
-        // Display user data
-        function displayUserData(userData) {
-            connectSection.style.display = 'none';
-            userDashboard.style.display = 'block';
-            
-            usernameEl.textContent = `@${userData.username}`;
-            const date = new Date(userData.connected_at);
-            connectedDateEl.textContent = date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            
-            // Add sample activity
-            addActivityItem('Account connected', `Connected Instagram account @${userData.username}`, 'just now');
-            addActivityItem('Automation started', 'Comment trigger detection is now active', '1 minute ago');
-        }
-        
-        // Add activity item
-        function addActivityItem(title, description, time) {
-            const activityItem = document.createElement('div');
-            activityItem.className = 'activity-item';
-            activityItem.innerHTML = `
-                <div class="activity-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="activity-content">
-                    <h4>${title}</h4>
-                    <p>${description}</p>
-                    <div class="activity-time">${time}</div>
-                </div>
-            `;
-            activityLog.prepend(activityItem);
-        }
-        
-        // Connect button handler
-        connectBtn.addEventListener('click', () => {
-            // Redirect to backend authentication endpoint
-            window.location.href = '/auth/instagram';
+        usernameEl.textContent = `@${userData.username}`;
+        const date = new Date(userData.connected_at);
+        connectedDateEl.textContent = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
         
-        // Simulate activity updates
-        setInterval(() => {
-            const commentsProcessed = document.getElementById('commentsProcessed');
-            const currentValue = parseInt(commentsProcessed.textContent.replace(',', ''));
-            commentsProcessed.textContent = (currentValue + Math.floor(Math.random() * 5)).toLocaleString();
+        // Add sample activity
+        addActivityItem('Account connected', `Connected Instagram account @${userData.username}`, 'just now');
+        addActivityItem('Automation started', 'Comment trigger detection is now active', '1 minute ago');
+    }
+    
+    // Add activity item
+    function addActivityItem(title, description, time) {
+        const activityItem = document.createElement('div');
+        activityItem.className = 'activity-item';
+        activityItem.innerHTML = `
+            <div class="activity-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="activity-content">
+                <h4>${title}</h4>
+                <p>${description}</p>
+                <div class="activity-time">${time}</div>
+            </div>
+        `;
+        activityLog.prepend(activityItem);
+    }
+    
+    // Connect button handler
+    connectBtn.addEventListener('click', () => {
+        // Redirect to backend authentication endpoint
+        window.location.href = '/auth/instagram';
+    });
+    
+    // Simulate activity updates
+    setInterval(() => {
+        if (userDashboard.style.display === 'none') return;
+        
+        const commentsProcessed = document.getElementById('commentsProcessed');
+        const currentValue = parseInt(commentsProcessed.textContent.replace(',', ''));
+        commentsProcessed.textContent = (currentValue + Math.floor(Math.random() * 5)).toLocaleString();
+        
+        const repliesSent = document.getElementById('repliesSent');
+        const repliesValue = parseInt(repliesSent.textContent.replace(',', ''));
+        repliesSent.textContent = (repliesValue + Math.floor(Math.random() * 3)).toLocaleString();
+        
+        // Add random activity
+        if (Math.random() > 0.7) {
+            const users = ['@johndoe', '@janedoe', '@alexsmith', '@emilyj'];
+            const triggers = ['send me', 'DM me', 'info', 'details'];
+            const user = users[Math.floor(Math.random() * users.length)];
+            const trigger = triggers[Math.floor(Math.random() * triggers.length)];
             
-            const repliesSent = document.getElementById('repliesSent');
-            const repliesValue = parseInt(repliesSent.textContent.replace(',', ''));
-            repliesSent.textContent = (repliesValue + Math.floor(Math.random() * 3)).toLocaleString();
+            addActivityItem(
+                'Comment processed', 
+                `Replied to ${user}: "Can you ${trigger} more info?"`, 
+                `${Math.floor(Math.random() * 10) + 1} minutes ago`
+            );
             
-            // Add random activity
-            if (Math.random() > 0.7) {
-                const users = ['@johndoe', '@janedoe', '@alexsmith', '@emilyj'];
-                const triggers = ['send me', 'DM me', 'info', 'details'];
-                const user = users[Math.floor(Math.random() * users.length)];
-                const trigger = triggers[Math.floor(Math.random() * triggers.length)];
-                
-                addActivityItem(
-                    'Comment processed', 
-                    `Replied to ${user}: "Can you ${trigger} more info?"`, 
-                    `${Math.floor(Math.random() * 10) + 1} minutes ago`
-                );
-                
-                addActivityItem(
-                    'Direct Message sent', 
-                    `Sent information to ${user} via DM`, 
-                    `${Math.floor(Math.random() * 10) + 1} minutes ago`
-                );
-            }
-        }, 10000);
-    </script>
+            addActivityItem(
+                'Direct Message sent', 
+                `Sent information to ${user} via DM`, 
+                `${Math.floor(Math.random() * 10) + 1} minutes ago`
+            );
+        }
+    }, 10000);
+</script>
 </body>
 </html>
