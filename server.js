@@ -6,12 +6,12 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 
 const app = express();
-const PORT = process.env.PORT || 10000; // Match Render's port
+const PORT = process.env.PORT || 10000;
 
 // Configuration
 const CONFIG = {
-  INSTAGRAM_APP_ID: process.env.INSTAGRAM_APP_ID,
-  INSTAGRAM_APP_SECRET: process.env.INSTAGRAM_APP_SECRET,
+  FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID,
+  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET,
   REDIRECT_URI: process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/instagram/callback',
   WEBHOOK_VERIFY_TOKEN: process.env.WEBHOOK_VERIFY_TOKEN,
   INSTAGRAM_API_VERSION: 'v19.0',
@@ -24,12 +24,12 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: { 
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 24 * 60 * 60 * 1000,
     secure: process.env.NODE_ENV === 'production'
   }
 }));
 
-// In-memory storage for demo
+// In-memory storage
 const users = {};
 
 // Middleware
@@ -42,19 +42,25 @@ app.get('/auth/instagram', (req, res) => {
   const state = uuidv4();
   req.session.oauthState = state;
   
-  const authUrl = `https://api.instagram.com/oauth/authorize?` +
-    `client_id=${CONFIG.INSTAGRAM_APP_ID}` +
+  const authUrl = `https://www.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/dialog/oauth?` +
+    `client_id=${CONFIG.FACEBOOK_APP_ID}` +
     `&redirect_uri=${encodeURIComponent(CONFIG.REDIRECT_URI)}` +
-    `&scope=user_profile,user_media` +
+    `&state=${state}` +
     `&response_type=code` +
-    `&state=${state}`;
+    `&scope=instagram_basic,instagram_manage_comments,instagram_manage_messages,pages_show_list` +
+    `&display=page`;  // Use page display for Instagram-like experience
   
   res.redirect(authUrl);
 });
 
 app.get('/auth/instagram/callback', async (req, res) => {
-  const { code, state } = req.query;
+  const { code, state, error, error_reason } = req.query;
   
+  // Handle errors
+  if (error) {
+    return res.status(401).send(`Authorization failed: ${error_reason || error}`);
+  }
+
   // Validate state
   if (!req.session.oauthState || req.session.oauthState !== state) {
     return res.status(401).send('Invalid state parameter');
@@ -62,53 +68,75 @@ app.get('/auth/instagram/callback', async (req, res) => {
   
   try {
     // Exchange code for access token
-    const tokenResponse = await axios.post(
-      `https://api.instagram.com/oauth/access_token`,
+    const tokenResponse = await axios.get(
+      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/oauth/access_token`,
       {
-        client_id: CONFIG.INSTAGRAM_APP_ID,
-        client_secret: CONFIG.INSTAGRAM_APP_SECRET,
-        grant_type: 'authorization_code',
-        redirect_uri: CONFIG.REDIRECT_URI,
-        code
-      },
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+        params: {
+          client_id: CONFIG.FACEBOOK_APP_ID,
+          client_secret: CONFIG.FACEBOOK_APP_SECRET,
+          redirect_uri: CONFIG.REDIRECT_URI,
+          code
         }
       }
     );
     
-    const { access_token, user_id } = tokenResponse.data;
+    const { access_token } = tokenResponse.data;
     
-    // Get user profile
-    const profileResponse = await axios.get(
-      `https://graph.instagram.com/${user_id}`,
+    // Get Instagram user ID
+    const accountsResponse = await axios.get(
+      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/me/accounts`,
       {
         params: {
-          fields: 'id,username',
+          fields: 'instagram_business_account',
+          access_token
+        }
+      }
+    );
+    
+    const pageId = accountsResponse.data.data[0].id;
+    const instagramAccountResponse = await axios.get(
+      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/${pageId}`,
+      {
+        params: {
+          fields: 'instagram_business_account',
+          access_token
+        }
+      }
+    );
+    
+    const instagramId = instagramAccountResponse.data.instagram_business_account.id;
+    
+    // Get Instagram profile
+    const profileResponse = await axios.get(
+      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/${instagramId}`,
+      {
+        params: {
+          fields: 'id,username,profile_picture_url',
           access_token
         }
       }
     );
     
     const userProfile = profileResponse.data;
+    const userId = userProfile.id;
     
     // Store user data
-    users[user_id] = {
-      id: user_id,
+    users[userId] = {
+      id: userId,
       username: userProfile.username,
+      profile_picture: userProfile.profile_picture_url,
       access_token,
       connected_at: new Date()
     };
     
     // Store user in session
-    req.session.userId = user_id;
+    req.session.userId = userId;
     
     // Redirect to dashboard
     res.redirect('/dashboard.html');
   } catch (error) {
     console.error('OAuth Error:', error.response?.data || error.message);
-    handleOAuthError(error, res);
+    res.status(500).send('Authentication failed. Please try again.');
   }
 });
 
@@ -206,26 +234,8 @@ async function handleComment(commentData) {
 
 // Helper to find media owner
 async function findMediaOwner(mediaId) {
-  // For demo, return the first user
   const userIds = Object.keys(users);
   return userIds.length > 0 ? userIds[0] : null;
-}
-
-// Error handling
-function handleOAuthError(error, res) {
-  const errorData = error.response?.data?.error || {};
-  let errorMessage = 'Authentication failed. Please try again.';
-  
-  switch (errorData.code) {
-    case 400:
-      errorMessage = 'Invalid authorization code. Please reconnect.';
-      break;
-    case 190:
-      errorMessage = 'Invalid platform app configuration. Please check your app settings.';
-      break;
-  }
-  
-  res.status(400).send(errorMessage);
 }
 
 // User session validation
@@ -244,6 +254,7 @@ app.get('/api/user', (req, res) => {
   res.json({
     id: user.id,
     username: user.username,
+    profile_picture: user.profile_picture,
     connected_at: user.connected_at
   });
 });
