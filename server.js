@@ -6,13 +6,13 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000; // Match Render's port
 
 // Configuration
 const CONFIG = {
-  FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID,
-  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET,
-  REDIRECT_URI: process.env.REDIRECT_URI || 'https://yourdomain.com/auth/instagram/callback',
+  INSTAGRAM_APP_ID: process.env.INSTAGRAM_APP_ID,
+  INSTAGRAM_APP_SECRET: process.env.INSTAGRAM_APP_SECRET,
+  REDIRECT_URI: process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/instagram/callback',
   WEBHOOK_VERIFY_TOKEN: process.env.WEBHOOK_VERIFY_TOKEN,
   INSTAGRAM_API_VERSION: 'v19.0',
   SESSION_SECRET: process.env.SESSION_SECRET || 'complex-secret-key'
@@ -29,7 +29,7 @@ app.use(session({
   }
 }));
 
-// In-memory storage for demo (use database in production)
+// In-memory storage for demo
 const users = {};
 
 // Middleware
@@ -42,12 +42,12 @@ app.get('/auth/instagram', (req, res) => {
   const state = uuidv4();
   req.session.oauthState = state;
   
-  const authUrl = `https://www.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/dialog/oauth?` +
-    `client_id=${CONFIG.FACEBOOK_APP_ID}` +
+  const authUrl = `https://api.instagram.com/oauth/authorize?` +
+    `client_id=${CONFIG.INSTAGRAM_APP_ID}` +
     `&redirect_uri=${encodeURIComponent(CONFIG.REDIRECT_URI)}` +
-    `&state=${state}` +
+    `&scope=user_profile,user_media` +
     `&response_type=code` +
-    `&scope=instagram_basic,instagram_manage_comments,instagram_manage_messages,pages_show_list`;
+    `&state=${state}`;
   
   res.redirect(authUrl);
 });
@@ -62,23 +62,27 @@ app.get('/auth/instagram/callback', async (req, res) => {
   
   try {
     // Exchange code for access token
-    const tokenResponse = await axios.get(
-      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/oauth/access_token`,
+    const tokenResponse = await axios.post(
+      `https://api.instagram.com/oauth/access_token`,
       {
-        params: {
-          client_id: CONFIG.FACEBOOK_APP_ID,
-          client_secret: CONFIG.FACEBOOK_APP_SECRET,
-          redirect_uri: CONFIG.REDIRECT_URI,
-          code
+        client_id: CONFIG.INSTAGRAM_APP_ID,
+        client_secret: CONFIG.INSTAGRAM_APP_SECRET,
+        grant_type: 'authorization_code',
+        redirect_uri: CONFIG.REDIRECT_URI,
+        code
+      },
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
       }
     );
     
-    const { access_token } = tokenResponse.data;
+    const { access_token, user_id } = tokenResponse.data;
     
     // Get user profile
     const profileResponse = await axios.get(
-      `https://graph.instagram.com/${CONFIG.INSTAGRAM_API_VERSION}/me`,
+      `https://graph.instagram.com/${user_id}`,
       {
         params: {
           fields: 'id,username',
@@ -88,18 +92,17 @@ app.get('/auth/instagram/callback', async (req, res) => {
     );
     
     const userProfile = profileResponse.data;
-    const userId = userProfile.id;
     
     // Store user data
-    users[userId] = {
-      id: userId,
+    users[user_id] = {
+      id: user_id,
       username: userProfile.username,
       access_token,
       connected_at: new Date()
     };
     
     // Store user in session
-    req.session.userId = userId;
+    req.session.userId = user_id;
     
     // Redirect to dashboard
     res.redirect('/dashboard.html');
@@ -203,8 +206,7 @@ async function handleComment(commentData) {
 
 // Helper to find media owner
 async function findMediaOwner(mediaId) {
-  // In a real implementation, you would query your database
-  // For demo, we'll just return the first user
+  // For demo, return the first user
   const userIds = Object.keys(users);
   return userIds.length > 0 ? userIds[0] : null;
 }
@@ -215,11 +217,11 @@ function handleOAuthError(error, res) {
   let errorMessage = 'Authentication failed. Please try again.';
   
   switch (errorData.code) {
+    case 400:
+      errorMessage = 'Invalid authorization code. Please reconnect.';
+      break;
     case 190:
       errorMessage = 'Invalid platform app configuration. Please check your app settings.';
-      break;
-    case 10:
-      errorMessage = 'This app is not whitelisted for business use. Contact your Meta Business Partner.';
       break;
   }
   
@@ -250,5 +252,5 @@ app.get('/api/user', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Instagram OAuth URL: ${CONFIG.REDIRECT_URI.replace('/callback', '')}`);
-  console.log(`Webhook URL: https://yourdomain.com/webhook`);
+  console.log(`Webhook URL: https://work-flow-ig-1.onrender.com/webhook`);
 });
