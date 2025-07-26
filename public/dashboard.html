@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .header { display: flex; justify-content: space-between; align-items: center; }
+    .config-form { margin-top: 30px; }
+    input, textarea, button { width: 100%; padding: 10px; margin-bottom: 15px; }
+    button { background-color: #405DE6; color: white; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Workflow Dashboard</h1>
+    <div id="user-info"></div>
+  </div>
+  
+  <div class="config-form">
+    <h2>Automation Configuration</h2>
+    <form id="configForm">
+      <label for="keyword">Trigger Keyword:</label>
+      <input type="text" id="keyword" required placeholder="e.g. discount, freebie">
+      
+      <label for="response">DM Response:</label>
+      <textarea id="response" rows="4" required placeholder="Message to send when keyword is detected"></textarea>
+      
+      <button type="submit">Save Configuration</button>
+    </form>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // Get user ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
+    
+    // Display user info
+    document.getElementById('user-info').innerHTML = `
+      <p>Connected as: <strong>${userId}</strong></p>
+    `;
+    
+    // Handle form submission
+    document.getElementById('configForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const keyword = document.getElementById('keyword').value;
+      const response = document.getElementById('response').value;
+      
+      try {
+        const result = await fetch('/configure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, keyword, response })
+        });
+        
+        const data = await result.json();
+        if (data.success) {
+          document.getElementById('status').innerHTML = 
+            '<p style="color:green">Configuration saved successfully!</p>';
+        }
+      } catch (error) {
+        document.getElementById('status').innerHTML = 
+          '<p style="color:red">Error saving configuration</p>';
+      }
+    });
+  </script>
+</body>
+</html>
