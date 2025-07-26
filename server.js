@@ -1,267 +1,144 @@
-require('dotenv').config();
+// === server.js ===
 const express = require('express');
 const axios = require('axios');
-const { v4: uuidv4 } = require('uuid');
 const bodyParser = require('body-parser');
-const session = require('express-session');
+const cors = require('cors');
+const qs = require('querystring');
+const path = require('path');
+require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 10000;
-
-// Configuration
-const CONFIG = {
-  FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID,
-  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET,
-  REDIRECT_URI: process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/instagram/callback',
-  WEBHOOK_VERIFY_TOKEN: process.env.WEBHOOK_VERIFY_TOKEN,
-  INSTAGRAM_API_VERSION: 'v19.0',
-  SESSION_SECRET: process.env.SESSION_SECRET || 'complex-secret-key'
-};
-
-// Session middleware
-app.use(session({
-  secret: CONFIG.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: true,
-  cookie: { 
-    maxAge: 24 * 60 * 60 * 1000,
-    secure: process.env.NODE_ENV === 'production'
-  }
-}));
-
-// In-memory storage
-const users = {};
-
-// Middleware
+app.use(cors());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('public'));
 
-// Instagram OAuth Routes
-app.get('/auth/instagram', (req, res) => {
-  const state = uuidv4();
-  req.session.oauthState = state;
-  
-  const authUrl = `https://www.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/dialog/oauth?` +
-    `client_id=${CONFIG.FACEBOOK_APP_ID}` +
-    `&redirect_uri=${encodeURIComponent(CONFIG.REDIRECT_URI)}` +
-    `&state=${state}` +
-    `&response_type=code` +
-    `&scope=instagram_basic,instagram_manage_comments,instagram_manage_messages,pages_show_list` +
-    `&display=page`;  // Use page display for Instagram-like experience
-  
-  res.redirect(authUrl);
+const PORT = process.env.PORT || 5000;
+const FB_APP_ID = process.env.FB_APP_ID;
+const FB_APP_SECRET = process.env.FB_APP_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI;
+
+let users = []; // In-memory store, replace with DB in production
+
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/auth/instagram/callback', async (req, res) => {
-  const { code, state, error, error_reason } = req.query;
-  
-  // Handle errors
-  if (error) {
-    return res.status(401).send(`Authorization failed: ${error_reason || error}`);
-  }
+// Step 1: Redirect to Instagram-styled Facebook Login
+app.get('/auth/instagram-login', (req, res) => {
+  const redirect_uri = encodeURIComponent(REDIRECT_URI);
+  const scopes = [
+    'instagram_business_basic',
+    'instagram_business_manage_comments',
+    'instagram_business_manage_messages',
+    'instagram_business_manage_insights'
+  ].join('%2C');
 
-  // Validate state
-  if (!req.session.oauthState || req.session.oauthState !== state) {
-    return res.status(401).send('Invalid state parameter');
-  }
-  
+  const instagramLoginUrl = `https://www.instagram.com/accounts/login/?force_authentication=true&platform_app_id=${FB_APP_ID}&enable_fb_login=true&next=https%3A%2F%2Fwww.instagram.com%2Foauth%2Fauthorize%2Fthird_party%2F%3Fredirect_uri%3D${redirect_uri}%26response_type%3Dcode%26scope%3D${scopes}%26client_id%3D${FB_APP_ID}`;
+
+  res.redirect(instagramLoginUrl);
+});
+
+// Step 2: Callback from Facebook with Code
+app.get('/auth/callback', async (req, res) => {
+  const code = req.query.code;
   try {
-    // Exchange code for access token
-    const tokenResponse = await axios.get(
-      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/oauth/access_token`,
-      {
-        params: {
-          client_id: CONFIG.FACEBOOK_APP_ID,
-          client_secret: CONFIG.FACEBOOK_APP_SECRET,
-          redirect_uri: CONFIG.REDIRECT_URI,
-          code
-        }
-      }
+    const tokenRes = await axios.get(
+      `https://graph.facebook.com/v18.0/oauth/access_token?${qs.stringify({
+        client_id: FB_APP_ID,
+        client_secret: FB_APP_SECRET,
+        redirect_uri: REDIRECT_URI,
+        code
+      })}`
     );
-    
-    const { access_token } = tokenResponse.data;
-    
-    // Get Instagram user ID
-    const accountsResponse = await axios.get(
-      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/me/accounts`,
-      {
-        params: {
-          fields: 'instagram_business_account',
-          access_token
-        }
-      }
+
+    const accessToken = tokenRes.data.access_token;
+    const userRes = await axios.get(
+      `https://graph.facebook.com/v18.0/me/accounts?access_token=${accessToken}`
     );
-    
-    const pageId = accountsResponse.data.data[0].id;
-    const instagramAccountResponse = await axios.get(
-      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/${pageId}`,
-      {
-        params: {
-          fields: 'instagram_business_account',
-          access_token
-        }
+
+    const pages = userRes.data.data;
+
+    for (const page of pages) {
+      const igRes = await axios.get(
+        `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
+      );
+      if (igRes.data.instagram_business_account) {
+        users.push({
+          user_id: page.id,
+          page_access_token: page.access_token,
+          ig_id: igRes.data.instagram_business_account.id
+        });
+
+        // Subscribe to Webhooks
+        await axios.post(
+          `https://graph.facebook.com/v18.0/${page.id}/subscribed_apps`,
+          { subscribed_fields: ['mention', 'comments', 'messages'] },
+          { headers: { Authorization: `Bearer ${page.access_token}` } }
+        );
       }
-    );
-    
-    const instagramId = instagramAccountResponse.data.instagram_business_account.id;
-    
-    // Get Instagram profile
-    const profileResponse = await axios.get(
-      `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/${instagramId}`,
-      {
-        params: {
-          fields: 'id,username,profile_picture_url',
-          access_token
-        }
-      }
-    );
-    
-    const userProfile = profileResponse.data;
-    const userId = userProfile.id;
-    
-    // Store user data
-    users[userId] = {
-      id: userId,
-      username: userProfile.username,
-      profile_picture: userProfile.profile_picture_url,
-      access_token,
-      connected_at: new Date()
-    };
-    
-    // Store user in session
-    req.session.userId = userId;
-    
-    // Redirect to dashboard
-    res.redirect('/dashboard.html');
-  } catch (error) {
-    console.error('OAuth Error:', error.response?.data || error.message);
-    res.status(500).send('Authentication failed. Please try again.');
+    }
+
+    res.send('IG account connected and webhook subscribed ✅');
+  } catch (err) {
+    console.error(err.response?.data || err);
+    res.status(500).send('Authentication failed');
   }
 });
 
-// Webhook endpoint
+// Step 3: Webhook verification
 app.get('/webhook', (req, res) => {
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
-  
-  if (mode === 'subscribe' && token === CONFIG.WEBHOOK_VERIFY_TOKEN) {
-    console.log('Webhook verified');
+
+  if (mode && token === VERIFY_TOKEN) {
     res.status(200).send(challenge);
   } else {
-    console.log('Webhook verification failed');
     res.sendStatus(403);
   }
 });
 
+// Step 4: Handle comments
 app.post('/webhook', async (req, res) => {
-  const { object, entry } = req.body;
-  
-  if (object === 'instagram') {
-    for (const item of entry) {
-      for (const change of item.changes) {
-        if (change.field === 'comments') {
-          await handleComment(change.value);
-        }
-      }
-    }
-  }
-  
-  res.sendStatus(200);
-});
+  try {
+    const data = req.body;
+    if (data.object === 'page') {
+      for (const entry of data.entry) {
+        for (const change of entry.changes) {
+          const value = change.value;
 
-// Auto-reply logic with DM
-async function handleComment(commentData) {
-  const { text, from, id: commentId, media_id } = commentData;
-  const triggerPhrases = ['send me', 'please share', 'dm me', 'info', 'details'];
-  
-  const shouldReply = triggerPhrases.some(phrase => 
-    text.toLowerCase().includes(phrase)
-  );
-  
-  if (shouldReply) {
-    console.log(`Trigger detected in comment: "${text}" by @${from.username}`);
-    
-    try {
-      // Find user who owns the media
-      const mediaOwnerId = await findMediaOwner(media_id);
-      
-      if (!mediaOwnerId || !users[mediaOwnerId]) {
-        console.error('Media owner not found');
-        return;
-      }
-      
-      const userAccessToken = users[mediaOwnerId].access_token;
-      
-      // Send DM to the commenter
-      await axios.post(
-        `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/${from.id}/messages`,
-        {
-          recipient: { id: from.id },
-          message: { 
-            text: "Thanks for your interest! Here's more information you requested:\n\n" +
-                  "• Product details: https://example.com/products\n" +
-                  "• Pricing: https://example.com/pricing\n" +
-                  "• Contact us: https://example.com/contact\n\n" +
-                  "Let us know if you have any other questions!"
+          if (value?.item === 'comment' && value?.verb === 'add') {
+            const commentText = value.message;
+            const commenterId = value.from.id;
+            const igUser = users.find(u => u.user_id === entry.id);
+
+            if (igUser && commentText.includes('demo')) { // keyword trigger
+              await axios.post(
+                `https://graph.facebook.com/v18.0/${igUser.ig_id}/messages`,
+                {
+                  recipient: { comment_id: value.comment_id },
+                  message: { text: 'Hey 👋 Thanks for commenting! Check your inbox!' }
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${igUser.page_access_token}`
+                  }
+                }
+              );
+            }
           }
-        },
-        {
-          params: { access_token: userAccessToken }
         }
-      );
-      
-      console.log(`Sent DM to @${from.username}`);
-      
-      // Reply to the comment
-      await axios.post(
-        `https://graph.facebook.com/${CONFIG.INSTAGRAM_API_VERSION}/${commentId}/replies`,
-        {
-          message: "Hi! We've sent you a direct message with the information you requested. Please check your DMs!"
-        },
-        {
-          params: { access_token: userAccessToken }
-        }
-      );
-      
-      console.log(`Replied to comment by @${from.username}`);
-    } catch (error) {
-      console.error('Auto-reply Error:', error.response?.data || error.message);
+      }
     }
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Webhook Error:', err.response?.data || err);
+    res.sendStatus(500);
   }
-}
-
-// Helper to find media owner
-async function findMediaOwner(mediaId) {
-  const userIds = Object.keys(users);
-  return userIds.length > 0 ? userIds[0] : null;
-}
-
-// User session validation
-app.get('/api/user', (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: 'Invalid session' });
-  }
-  
-  const userId = req.session.userId;
-  const user = users[userId];
-  
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-  
-  res.json({
-    id: user.id,
-    username: user.username,
-    profile_picture: user.profile_picture,
-    connected_at: user.connected_at
-  });
 });
 
-// Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Instagram OAuth URL: ${CONFIG.REDIRECT_URI.replace('/callback', '')}`);
-  console.log(`Webhook URL: https://work-flow-ig-1.onrender.com/webhook`);
+  console.log(`🌐 Server running on http://localhost:${PORT}`);
 });
