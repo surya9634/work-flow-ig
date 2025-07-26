@@ -1,20 +1,30 @@
 {
-  "name": "instagram-bot",
+  "name": "workflow-ig-automation",
   "version": "1.0.0",
-  "description": "Instagram Automation Tool",
+  "description": "Instagram Comment Automation like ManyChat using OAuth and Webhooks",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "axios": "^1.7.2",
+    "axios": "^1.6.8",
     "body-parser": "^1.20.2",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-session": "^1.18.0",
-    "uuid": "^9.0.1"
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "querystring": "^0.2.1"
   },
   "engines": {
-    "node": ">=18.0.0"
-  }
+    "node": ">=16.x"
+  },
+  "keywords": [
+    "instagram",
+    "automation",
+    "manychat",
+    "saas",
+    "webhook",
+    "oauth"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }
