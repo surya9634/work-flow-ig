@@ -24,19 +24,17 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Step 1: Redirect to Instagram-styled Facebook Login
+// Step 1: Redirect to Facebook Login with IG scopes (styled like Instagram login)
 app.get('/auth/instagram-login', (req, res) => {
-  const redirect_uri = encodeURIComponent(REDIRECT_URI);
   const scopes = [
-    'instagram_business_basic',
-    'instagram_business_manage_comments',
-    'instagram_business_manage_messages',
-    'instagram_business_manage_insights'
-  ].join('%2C');
+    'instagram_basic',
+    'instagram_manage_comments',
+    'instagram_manage_messages',
+    'instagram_manage_insights'
+  ].join(',');
 
-  const instagramLoginUrl = `https://www.instagram.com/accounts/login/?force_authentication=true&platform_app_id=${FB_APP_ID}&enable_fb_login=true&next=https%3A%2F%2Fwww.instagram.com%2Foauth%2Fauthorize%2Fthird_party%2F%3Fredirect_uri%3D${redirect_uri}%26response_type%3Dcode%26scope%3D${scopes}%26client_id%3D${FB_APP_ID}`;
-
-  res.redirect(instagramLoginUrl);
+  const loginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}&response_type=code&state=random123`;
+  res.redirect(loginUrl);
 });
 
 // Step 2: Callback from Facebook with Code
@@ -79,10 +77,10 @@ app.get('/auth/callback', async (req, res) => {
       }
     }
 
-    res.send('IG account connected and webhook subscribed ✅');
+    res.send('✅ IG account connected and webhook subscribed.');
   } catch (err) {
     console.error(err.response?.data || err);
-    res.status(500).send('Authentication failed');
+    res.status(500).send('❌ Authentication failed');
   }
 });
 
@@ -111,10 +109,9 @@ app.post('/webhook', async (req, res) => {
 
           if (value?.item === 'comment' && value?.verb === 'add') {
             const commentText = value.message;
-            const commenterId = value.from.id;
             const igUser = users.find(u => u.user_id === entry.id);
 
-            if (igUser && commentText.includes('demo')) { // keyword trigger
+            if (igUser && commentText.includes('demo')) {
               await axios.post(
                 `https://graph.facebook.com/v18.0/${igUser.ig_id}/messages`,
                 {
