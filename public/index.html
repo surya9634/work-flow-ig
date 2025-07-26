@@ -1,15 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Workflow IG Automation</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow - Instagram Automation</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .container { text-align: center; margin-top: 50px; }
+    .btn { background-color: #405DE6; color: white; padding: 12px 24px; 
+           border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+    .features { margin-top: 40px; text-align: left; }
+  </style>
 </head>
 <body>
-  <h1>🚀 Workflow Instagram Automation</h1>
-  <button onclick="login()">Login with Instagram</button>
+  <div class="container">
+    <h1>Workflow</h1>
+    <p>Instagram Comment Automation Platform</p>
+    <button class="btn" onclick="loginWithInstagram()">Login with Instagram</button>
+    
+    <div class="features">
+      <h3>How It Works:</h3>
+      <ol>
+        <li>Connect your Instagram Business Account</li>
+        <li>Set up keywords and automated responses</li>
+        <li>When someone comments with your keyword, we automatically send them a DM</li>
+      </ol>
+    </div>
+  </div>
 
   <script>
-    function login() {
-      window.location.href = 'https://work-flow-ig-1.onrender.com/auth/instagram-login';
+    function loginWithInstagram() {
+      window.location.href = '/auth/instagram';
+    }
+    
+    // Handle auth errors
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('error') === 'auth_failed') {
+      alert('Instagram login failed. Please try again.');
     }
   </script>
 </body>
