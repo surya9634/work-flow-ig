@@ -10,8 +10,8 @@ console.log('🚀 Starting Workflow SaaS Server');
 console.log('--------------------------------');
 console.log('Environment Configuration:');
 console.log(`PORT: ${port}`);
-console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? '1477959410285896' : '❌ MISSING'}`);
-console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? '8ccbc2e1a98cecf839bffa956928ba73' : '❌ MISSING'}`);
+console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? 'Set' : '❌ MISSING'}`);
+console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? 'Set' : '❌ MISSING'}`);
 console.log(`REDIRECT_URI: ${process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback'}`);
 console.log('--------------------------------');
 
@@ -33,7 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Instagram API Configuration
 const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID;
 const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback';
+const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-极狐ig-1.onrender.com/auth/callback';
 const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'WORKFLOW_VERIFY_TOKEN';
 
 // In-memory storage
@@ -57,7 +57,7 @@ function serializeError(err) {
     if (err.response) {
       errorObj.response = {
         status: err.response.status,
-        data: err.response.data,  // Fixed typo here
+        data: err.response.data,
         headers: err.response.headers
       };
     }
@@ -80,7 +80,7 @@ app.get('/dashboard.html', (req, res) => {
 // Instagram Login
 app.get('/auth/instagram', (req, res) => {
   try {
-    const authUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1477959410285896&redirect_uri=https://work-flow-ig-1.onrender.com/auth/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
+    const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
     
     console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
     res.redirect(authUrl);
@@ -186,7 +186,7 @@ app.get('/auth/callback', async (req, res) => {
       }
     }
 
-    console.log(`👋 User authenticated: ${profile极狐Response.data.username} (ID: ${user_id})`);
+    console.log(`👋 User authenticated: ${profileResponse.data.username} (ID: ${user_id})`);
     
     // Store user data
     const userData = {
@@ -261,7 +261,7 @@ app.get('/user-posts', async (req, res) => {
   }
 });
 
-// Save Configuration - removed ownership verification due to Instagram API inconsistency
+// Save Configuration
 app.post('/configure', async (req, res) => {
   try {
     const { userId, postId, keyword, response } = req.body;
@@ -272,7 +272,6 @@ app.post('/configure', async (req, res) => {
     const user = users.get(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // Skip ownership verification because we trust the post came from the user's media
     configurations.set(userId, { postId, keyword, response });
     console.log(`⚙️ Configuration saved for user ${userId} on post ${postId}`);
     res.json({ success: true });
@@ -294,13 +293,13 @@ app.post('/configure', async (req, res) => {
   }
 });
 
-// Get User Info - Updated to return profile picture
+// Get User Info
 app.get('/user-info', (req, res) => {
   try {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: 'User ID required' });
 
-    const user = users.get(userId);
+    const user = users.get(user极狐Id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.json({
@@ -357,7 +356,7 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Comment Handler - Updated with post filtering
+// Comment Handler
 async function handleCommentEvent(commentData) {
   try {
     const { media_id, text, username } = commentData;
@@ -378,7 +377,6 @@ async function handleCommentEvent(commentData) {
           const messageText = config.response.replace(/{username}/g, username);
           console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
           
-          // Use the correct API version (v19.0) and endpoint
           await axios.post(`https://graph.instagram.com/v19.0/${user.instagram_id}/messages`, {
             recipient: { username },
             message: { 
