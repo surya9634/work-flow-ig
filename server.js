@@ -95,7 +95,7 @@ app.get('/auth/instagram', (req, res) => {
   }
 });
 
-// Instagram Callback
+// Instagram Callback with retry mechanism
 app.get('/auth/callback', async (req, res) => {
   try {
     console.log('📬 Received Instagram callback:', req.query);
@@ -122,8 +122,11 @@ app.get('/auth/callback', async (req, res) => {
       'https://api.instagram.com/oauth/access_token',
       tokenData,
       {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: 10000
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-IG-App-ID': INSTAGRAM_APP_ID
+        },
+        timeout: 15000  // 15 seconds timeout
       }
     );
 
@@ -134,15 +137,37 @@ app.get('/auth/callback', async (req, res) => {
     console.log('✅ Token exchange successful');
     const { access_token, user_id } = tokenResponse.data;
 
-    // Get user profile
-    console.log('👤 Fetching user profile...');
-    const profileResponse = await axios.get(`https://graph.instagram.com/${user_id}`, {
-      params: { fields: 'id,username', access_token },
-      timeout: 10000
-    });
+    // Get user profile with retry mechanism
+    let profileResponse;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelays = [2000, 4000, 8000]; // 2s, 4s, 8s
+    
+    while (retryCount <= maxRetries) {
+      try {
+        console.log(`👤 Fetching user profile (attempt ${retryCount + 1} of ${maxRetries + 1})...`);
+        profileResponse = await axios.get(`https://graph.instagram.com/me`, {
+          params: { fields: 'id,username', access_token },
+          headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
+          timeout: 20000  // 20 seconds timeout
+        });
 
-    if (!profileResponse.data || !profileResponse.data.username) {
-      throw new Error('Invalid profile response: ' + JSON.stringify(profileResponse.data));
+        if (!profileResponse.data || !profileResponse.data.username) {
+          throw new Error('Invalid profile response: ' + JSON.stringify(profileResponse.data));
+        }
+        
+        break; // Break out of loop if successful
+      } catch (err) {
+        if (retryCount >= maxRetries) {
+          console.error(`🔥 Failed after ${maxRetries + 1} attempts`);
+          throw err;
+        }
+        
+        const delay = retryDelays[retryCount];
+        console.log(`⚠️ Profile fetch failed, retrying in ${delay/1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        retryCount++;
+      }
     }
 
     console.log(`👋 User authenticated: ${profileResponse.data.username} (ID: ${user_id})`);
@@ -169,9 +194,13 @@ app.get('/auth/callback', async (req, res) => {
         userMessage = err.response.data.error_message;
       } else if (err.response.status === 400) {
         userMessage = 'Invalid request to Instagram API';
+      } else if (err.response.status === 500) {
+        userMessage = 'Temporary Instagram API issue - please try again later';
       }
     } else if (err.message.includes('timeout')) {
       userMessage = 'Connection to Instagram timed out';
+    } else if (err.message.includes('Invalid profile response')) {
+      userMessage = 'Could not retrieve your Instagram profile';
     }
     
     res.redirect(`/?error=auth_failed&message=${encodeURIComponent(userMessage)}`);
@@ -270,7 +299,8 @@ async function handleCommentEvent(commentData) {
             fields: 'owner',
             access_token: user.access_token
           },
-          timeout: 5000
+          headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
+          timeout: 10000
         });
 
         const owner_id = mediaResponse.data.owner.id;
@@ -290,9 +320,10 @@ async function handleCommentEvent(commentData) {
             }, {
               headers: {
                 'Authorization': `Bearer ${user.access_token}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-IG-App-ID': INSTAGRAM_APP_ID
               },
-              timeout: 10000
+              timeout: 15000
             });
 
             console.log(`✅ DM sent to ${username} for keyword "${keyword}"`);
