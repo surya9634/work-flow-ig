@@ -85,7 +85,8 @@ app.get('/auth/instagram', (req, res) => {
       'instagram_business_manage_messages',
       'instagram_business_manage_comments',
       'instagram_business_content_publish',
-      'instagram_business_manage_insights'
+      'instagram_business_manage_insights',
+      'pages_show_list' // Added for business accounts
     ].join(',');
 
     const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}`;
@@ -147,7 +148,8 @@ app.get('/auth/callback', async (req, res) => {
     }
 
     console.log('✅ Token exchange successful');
-    const { access_token, user_id } = tokenResponse.data;
+    const access_token = tokenResponse.data.access_token;
+    const user_id = String(tokenResponse.data.user_id); // Convert to string to prevent type issues
 
     // Get user profile with retry mechanism
     let profileResponse;
@@ -235,15 +237,25 @@ app.get('/user-posts', async (req, res) => {
     const user = users.get(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const response = await axios.get(`https://graph.instagram.com/v19.0/${user.instagram_id}/media`, {
+    const response = await axios.get(`https://graph.instagram.com/v19.0/me/media`, {
       params: {
-        fields: 'id,caption,media_url,media_type',
+        fields: 'id,caption,media_url,media_type,thumbnail_url',
         access_token: user.access_token
       },
       headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID }
     });
 
-    res.json(response.data.data);
+    // Process posts to handle videos (use thumbnail for videos)
+    const processedPosts = response.data.data.map(post => {
+      return {
+        id: post.id,
+        caption: post.caption || '',
+        media_url: post.media_type === 'VIDEO' ? (post.thumbnail_url || '') : post.media_url,
+        media_type: post.media_type
+      };
+    });
+
+    res.json(processedPosts);
   } catch (err) {
     console.error('🔥 User posts error:', serializeError(err));
     res.status(500).json({ error: 'Error fetching posts' });
