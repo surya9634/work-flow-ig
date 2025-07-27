@@ -40,6 +40,9 @@ const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'WORKFLOW_VERIF
 const users = new Map();
 const configurations = new Map();
 
+// Track used authorization codes to prevent reuse
+const usedAuthorizationCodes = new Set();
+
 // Error serialization function
 function serializeError(err) {
   if (!err) return 'Unknown error';
@@ -95,7 +98,7 @@ app.get('/auth/instagram', (req, res) => {
   }
 });
 
-// Instagram Callback with retry mechanism
+// Instagram Callback with retry mechanism and code reuse prevention
 app.get('/auth/callback', async (req, res) => {
   try {
     console.log('📬 Received Instagram callback:', req.query);
@@ -108,6 +111,15 @@ app.get('/auth/callback', async (req, res) => {
     if (!code) {
       throw new Error('Authorization code is missing');
     }
+
+    // Prevent authorization code reuse
+    if (usedAuthorizationCodes.has(code)) {
+      console.warn('⚠️ Authorization code reuse detected:', code);
+      throw new Error('Authorization code has already been used');
+    }
+    
+    // Mark code as used immediately
+    usedAuthorizationCodes.add(code);
 
     // Exchange code for access token
     const tokenData = new URLSearchParams();
@@ -146,8 +158,12 @@ app.get('/auth/callback', async (req, res) => {
     while (retryCount <= maxRetries) {
       try {
         console.log(`👤 Fetching user profile (attempt ${retryCount + 1} of ${maxRetries + 1})...`);
+        // Use the /me endpoint with the access token
         profileResponse = await axios.get(`https://graph.instagram.com/me`, {
-          params: { fields: 'id,username', access_token },
+          params: { 
+            fields: 'id,username,profile_picture_url',
+            access_token: access_token
+          },
           headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
           timeout: 20000  // 20 seconds timeout
         });
@@ -176,6 +192,7 @@ app.get('/auth/callback', async (req, res) => {
     const userData = {
       access_token,
       username: profileResponse.data.username,
+      profile_pic: profileResponse.data.profile_picture_url,
       instagram_id: user_id,
       last_login: new Date()
     };
@@ -201,6 +218,8 @@ app.get('/auth/callback', async (req, res) => {
       userMessage = 'Connection to Instagram timed out';
     } else if (err.message.includes('Invalid profile response')) {
       userMessage = 'Could not retrieve your Instagram profile';
+    } else if (err.message.includes('Authorization code has already been used')) {
+      userMessage = 'This login link has already been used. Please start a new login.';
     }
     
     res.redirect(`/?error=auth_failed&message=${encodeURIComponent(userMessage)}`);
@@ -224,7 +243,7 @@ app.post('/configure', (req, res) => {
   }
 });
 
-// Get User Info
+// Get User Info - Updated to return profile picture
 app.get('/user-info', (req, res) => {
   try {
     const { userId } = req.query;
@@ -235,7 +254,8 @@ app.get('/user-info', (req, res) => {
 
     res.json({
       username: user.username,
-      instagram_id: user.instagram_id
+      instagram_id: user.instagram_id,
+      profile_pic: user.profile_pic
     });
   } catch (err) {
     console.error('🔥 User info error:', serializeError(err));
@@ -286,7 +306,7 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Comment Handler
+// Comment Handler - Updated with correct API version and error handling
 async function handleCommentEvent(commentData) {
   try {
     const { media_id, text, username } = commentData;
@@ -294,6 +314,7 @@ async function handleCommentEvent(commentData) {
 
     for (const [userId, user] of users.entries()) {
       try {
+        // Get media owner
         const mediaResponse = await axios.get(`https://graph.instagram.com/${media_id}`, {
           params: {
             fields: 'owner',
@@ -305,18 +326,23 @@ async function handleCommentEvent(commentData) {
 
         const owner_id = mediaResponse.data.owner.id;
 
+        // Check if owner has configuration
         if (configurations.has(owner_id)) {
           const { keyword, response } = configurations.get(owner_id);
 
+          // Check if the comment contains the keyword (case insensitive)
           if (text.toLowerCase().includes(keyword.toLowerCase())) {
             console.log(`🔑 Keyword match: "${keyword}" in comment by ${username}`);
             
             const messageText = response.replace(/{username}/g, username);
             console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
             
-            await axios.post(`https://graph.instagram.com/v18.0/${owner_id}/messages`, {
+            // Use the correct API version (v19.0) and endpoint
+            await axios.post(`https://graph.instagram.com/v19.0/${owner_id}/messages`, {
               recipient: { username },
-              message: { text: messageText }
+              message: { 
+                text: messageText
+              }
             }, {
               headers: {
                 'Authorization': `Bearer ${user.access_token}`,
