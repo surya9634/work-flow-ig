@@ -5,13 +5,19 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 10000;
 
+// Environment check
+if (!process.env.INSTAGRAM_APP_ID) {
+  console.error('Missing INSTAGRAM_APP_ID environment variable!');
+  process.exit(1);
+}
+
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Instagram API Configuration - USING YOUR APP ID
-const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID || '1477959410285896';
-const INSTAGRAM_APP_SECRET = process.env.8ccbc2e1a98cecf839bffa956928ba73;
+// Instagram API Configuration - FIXED
+const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID;
+const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback';
 const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'hello';
 
@@ -32,7 +38,7 @@ app.get('/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Instagram Login (Using your specific parameters)
+// Instagram Login
 app.get('/auth/instagram', (req, res) => {
   const scopes = [
     'instagram_business_basic',
@@ -40,9 +46,8 @@ app.get('/auth/instagram', (req, res) => {
     'instagram_business_manage_comments',
     'instagram_business_content_publish',
     'instagram_business_manage_insights'
-  ].join('%2C'); // URL-encoded comma
+  ].join('%2C');
 
-  // Using YOUR SPECIFIC APP ID AND REDIRECT URI
   const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}`;
   
   console.log('Redirecting to Instagram Auth URL:', authUrl);
@@ -111,7 +116,6 @@ app.get('/auth/callback', async (req, res) => {
     let errorMessage = 'Instagram login failed. Please try again.';
     
     if (error.response && error.response.data) {
-      // Handle Instagram API errors
       if (error.response.data.error_message) {
         errorMessage = error.response.data.error_message;
       } else if (error.response.data.error) {
@@ -196,10 +200,8 @@ async function handleCommentEvent(commentData) {
   try {
     const { media_id, text, username } = commentData;
 
-    // Iterate over all users to find the owner of the media
     for (const [userId, user] of users.entries()) {
       try {
-        // Get media details to check owner
         const mediaResponse = await axios.get(`https://graph.instagram.com/${media_id}`, {
           params: {
             fields: 'owner',
@@ -209,13 +211,10 @@ async function handleCommentEvent(commentData) {
 
         const owner_id = mediaResponse.data.owner.id;
 
-        // Check if the owner has a configuration
         if (configurations.has(owner_id)) {
           const { keyword, response } = configurations.get(owner_id);
 
-          // Check if the comment contains the keyword (case insensitive)
           if (text.toLowerCase().includes(keyword.toLowerCase())) {
-            // Send DM
             await axios.post(`https://graph.instagram.com/v18.0/${owner_id}/messages`, {
               recipient: { username },
               message: {
@@ -232,7 +231,7 @@ async function handleCommentEvent(commentData) {
           }
         }
       } catch (error) {
-        console.error('Comment handling error for user', userId, ':', error.response ? error.response.data : error.message);
+        console.error('Comment handling error:', error.response?.data || error.message);
       }
     }
   } catch (error) {
