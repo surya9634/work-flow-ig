@@ -28,7 +28,7 @@
       min-height: 100vh;
     }
     .sidebar {
-      background: linear-gradient(180deg, var(--primary), var(--secondary));
+      background: linear-gradient(180极狐deg, var(--primary), var(--secondary));
       color: white;
       padding: 2rem 1rem;
     }
@@ -176,6 +176,24 @@
       font-size: 0.8rem;
       color: #777;
     }
+    .comment-item {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      transition: background-color 0.2s;
+    }
+    .comment-item:hover {
+      background-color: #f5f5f5;
+    }
+    .comments-container {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
     @media (max-width: 768px) {
       .dashboard {
         grid-template-columns: 1fr;
@@ -210,7 +228,7 @@
       </div>
       <div class="nav-item">
         <span>👤 Account</span>
-      </div>
+      </极狐div>
     </div>
     
     <div class="main-content">
@@ -252,6 +270,27 @@
           <button type="submit" class="btn">Save Configuration</button>
           <div id="status" class="status"></div>
         </form>
+      </div>
+      
+      <div class="card">
+        <h2>Manage Comments & Send Messages</h2>
+        <div class="form-group">
+          <label for="viewCommentsBtn">View Comments for Selected Post</label>
+          <button id="viewCommentsBtn" class="btn" style="width: auto">Load Comments</button>
+        </div>
+        
+        <div id="commentsSection" style="display: none; margin-top: 20px;">
+          <h3>Comments</h3>
+          <div id="commentsContainer" class="comments-container"></div>
+          
+          <div class="form-group">
+            <label for="manualMessage">Message to Send</label>
+            <textarea id="manualMessage" placeholder="Enter your message here..."></textarea>
+          </div>
+          
+          <button id="sendSelectedBtn" class="btn" disabled>Send to Selected Users</button>
+          <div id="manualMessageStatus" class="status"></div>
+        </div>
       </div>
       
       <div class="card">
@@ -402,6 +441,110 @@
         statusEl.textContent = error.message || 'Error saving configuration. Please try again.';
         statusEl.className = 'status error';
         statusEl.style.display = 'block';
+      }
+    });
+    
+    // View Comments Button Handler
+    document.getElementById('viewCommentsBtn').addEventListener('click', () => {
+      const postId = document.getElementById('postSelect').value;
+      if (!postId) {
+        alert('Please select a post first');
+        return;
+      }
+      
+      loadPostComments(postId);
+    });
+
+    // Load comments for a post
+    function loadPostComments(postId) {
+      const commentsContainer = document.getElementById('commentsContainer');
+      commentsContainer.innerHTML = '<p>Loading comments...</p>';
+      document.getElementById('commentsSection').style.display = 'block';
+      
+      fetch(`/post-comments?userId=${userId}&postId=${postId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch comments');
+          return response.json();
+        })
+        .then(comments => {
+          if (comments.length === 0) {
+            commentsContainer.innerHTML = '<p>No comments found for this post</p>';
+            return;
+          }
+          
+          commentsContainer.innerHTML = '';
+          
+          comments.forEach(comment => {
+            const commentEl = document.createElement('div');
+            commentEl.className = 'comment-item';
+            
+            commentEl.innerHTML = `
+              <input type="checkbox" class="user-checkbox" data-username="${comment.username}" 
+                     style="margin-right: 10px;">
+              <div>
+                <strong>${comment.username}</strong>
+                <div>${comment.text}</div>
+                <small>${new Date(comment.timestamp).toLocaleString()}</small>
+              </div>
+            `;
+            
+            commentsContainer.appendChild(commentEl);
+          });
+        })
+        .catch(error => {
+          console.error('Comments fetch error:', error);
+          commentsContainer.innerHTML = `<p style="color: red;">Error loading comments: ${error.message}</p>`;
+        });
+    }
+
+    // Send to selected users
+    document.getElementById('sendSelectedBtn').addEventListener('click', async () => {
+      const message = document.getElementById('manualMessage').value;
+      if (!message) {
+        alert('Please enter a message');
+        return;
+      }
+      
+      const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked'))
+        .map(checkbox => checkbox.dataset.username);
+        
+      if (selectedUsers.length === 0) {
+        alert('Please select at least one user');
+        return;
+      }
+      
+      const statusEl = document.getElementById('manualMessageStatus');
+      statusEl.textContent = `Sending messages to ${selectedUsers.length} users...`;
+      statusEl.className = 'status';
+      statusEl.style.display = 'block';
+      
+      try {
+        for (const username of selectedUsers) {
+          await fetch('/send-manual-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, username, message })
+          });
+        }
+        
+        statusEl.textContent = `Successfully sent messages to ${selectedUsers.length} users!`;
+        statusEl.className = 'status success';
+        
+        // Clear selection and message
+        document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
+        document.getElementById('manualMessage').value = '';
+        document.getElementById('sendSelectedBtn').disabled = true;
+      } catch (error) {
+        statusEl.textContent = `Error sending messages: ${error.message}`;
+        statusEl.className = 'status error';
+      }
+    });
+
+    // Enable send button when users are selected
+    document.addEventListener('change', (e) => {
+      if (e.target.classList.contains('user-checkbox')) {
+        const selectedCount = document.querySelectorAll('.user-checkbox:checked').length;
+        document.getElementById('sendSelectedBtn').disabled = selectedCount === 0;
       }
     });
   </script>
