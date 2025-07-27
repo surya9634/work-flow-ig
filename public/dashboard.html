@@ -76,6 +76,12 @@
       font-weight: bold;
       font-size: 18px;
       color: #405DE6;
+      overflow: hidden;
+    }
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     .card {
       background: white;
@@ -97,7 +103,7 @@
       font-weight: 600;
       color: #555;
     }
-    input, textarea {
+    input, textarea, select {
       width: 100%;
       padding: 12px 15px;
       border: 1px solid #ddd;
@@ -105,7 +111,7 @@
       font-size: 1rem;
       transition: border 0.3s;
     }
-    input:focus, textarea:focus {
+    input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--primary);
     }
@@ -142,6 +148,33 @@
       background: var(--error-bg);
       color: var(--error-text);
       border: 1px solid #f5c2c7;
+    }
+    .post-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+    }
+    .post-thumb {
+      width: 50px;
+      height: 50px;
+      border-radius: 5px;
+      object-fit: cover;
+      background: #f0f0f0;
+    }
+    .post-info {
+      flex: 1;
+      overflow: hidden;
+    }
+    .post-caption {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.9rem;
+    }
+    .post-id {
+      font-size: 0.8rem;
+      color: #777;
     }
     @media (max-width: 768px) {
       .dashboard {
@@ -184,7 +217,9 @@
       <div class="header">
         <h1>Automation Dashboard</h1>
         <div class="user-info">
-          <div class="user-avatar" id="user-avatar">IG</div>
+          <div class="user-avatar" id="user-avatar">
+            <img id="profile-pic" src="" alt="Profile Picture">
+          </div>
           <div>
             <div id="username">Loading...</div>
             <small id="user-id"></small>
@@ -195,6 +230,13 @@
       <div class="card">
         <h2>Comment-to-DM Configuration</h2>
         <form id="configForm">
+          <div class="form-group">
+            <label for="postSelect">Select Post to Automate</label>
+            <select id="postSelect" required>
+              <option value="">Loading your posts...</option>
+            </select>
+          </div>
+          
           <div class="form-group">
             <label for="keyword">Trigger Keyword</label>
             <input type="text" id="keyword" required placeholder="e.g. discount, freebie, promo">
@@ -215,9 +257,10 @@
       <div class="card">
         <h2>How It Works</h2>
         <ol style="padding-left: 1.5rem; line-height: 2;">
-          <li>When someone comments on your post with your keyword, they'll receive a direct message</li>
+          <li>Select a post you want to monitor for comments</li>
+          <li>Set a keyword that will trigger automated DMs</li>
+          <li>When someone comments with your keyword, they'll receive a direct message</li>
           <li>Make sure your Instagram account is set to <strong>Professional Account</strong></li>
-          <li>Test with your personal account before going live</li>
           <li>Messages will be sent from your Instagram account</li>
           <li>Use {username} in your response to personalize messages</li>
         </ol>
@@ -242,32 +285,93 @@
         .then(data => {
           if (data.username) {
             document.getElementById('username').textContent = data.username;
-            // Set avatar initials
-            const initials = data.username.charAt(0).toUpperCase();
-            document.getElementById('user-avatar').textContent = initials;
+            // Set profile picture
+            if (data.profile_pic) {
+              document.getElementById('profile-pic').src = data.profile_pic;
+            }
           }
         })
         .catch(error => {
           console.error('User info fetch error:', error);
           document.getElementById('username').textContent = 'Instagram User';
         });
+      
+      // Load user's posts
+      loadUserPosts();
     } else {
       window.location.href = '/';
+    }
+    
+    // Load user's Instagram posts
+    function loadUserPosts() {
+      const postSelect = document.getElementById('postSelect');
+      postSelect.innerHTML = '<option value="">Loading your posts...</option>';
+      
+      fetch(`/user-posts?userId=${userId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch posts');
+          return response.json();
+        })
+        .then(posts => {
+          if (posts.length === 0) {
+            postSelect.innerHTML = '<option value="">No posts found</option>';
+            return;
+          }
+          
+          postSelect.innerHTML = '<option value="">Select a post to automate</option>';
+          
+          posts.forEach(post => {
+            const option = document.createElement('option');
+            option.value = post.id;
+            
+            const caption = post.caption ? 
+              post.caption.substring(0, 30) + (post.caption.length > 30 ? '...' : '') : 
+              'Untitled post';
+            
+            option.innerHTML = `
+              <div class="post-option">
+                <div class="post-thumb">
+                  ${post.media_url ? 
+                    `<img src="${post.media_url}" alt="Post thumbnail">` : 
+                    '📷'}
+                </div>
+                <div class="post-info">
+                  <div class="post-caption">${caption}</div>
+                  <div class="post-id">ID: ${post.id}</div>
+                </div>
+              </div>
+            `;
+            
+            postSelect.appendChild(option);
+          });
+        })
+        .catch(error => {
+          console.error('Posts fetch error:', error);
+          postSelect.innerHTML = '<option value="">Failed to load posts</option>';
+        });
     }
     
     // Handle form submission
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
+      const postId = document.getElementById('postSelect').value;
       const keyword = document.getElementById('keyword').value;
       const response = document.getElementById('response').value;
       const statusEl = document.getElementById('status');
+      
+      if (!postId) {
+        statusEl.textContent = 'Please select a post to automate';
+        statusEl.className = 'status error';
+        statusEl.style.display = 'block';
+        return;
+      }
       
       try {
         const result = await fetch('/configure', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, keyword, response })
+          body: JSON.stringify({ userId, postId, keyword, response })
         });
         
         if (!result.ok) {
