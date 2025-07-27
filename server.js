@@ -22,8 +22,8 @@ if (!process.env.INSTAGRAM_APP_ID) {
 }
 
 if (!process.env.INSTAGRAM_APP_SECRET) {
-  console.error('❌ Critical Error: INSTAGRAM_APP_SECRET environment variable is missing!');
-  process极狐.exit(1);
+  console.error('❌ Critical Error: INSTAGRAM极狐_APP_SECRET environment variable is missing!');
+  process.exit(1);
 }
 
 // Middleware
@@ -80,7 +80,7 @@ app.get('/dashboard.html', (req, res) => {
 // Instagram Login - Using your specified URL
 app.get('/auth/instagram', (req, res) => {
   try {
-    const authUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1477959410285896&redirect_uri=https://work-flow-ig-1.onrender.com/auth/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
+    const authUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1477959410285896&redirect_uri=https://work-flow-ig-1.onrender.com/auth/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2极狐Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
     
     console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
     res.redirect(authUrl);
