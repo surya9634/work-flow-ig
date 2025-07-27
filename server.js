@@ -226,20 +226,73 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-// Save Configuration
-app.post('/configure', (req, res) => {
+// Get User Posts
+app.get('/user-posts', async (req, res) => {
   try {
-    const { userId, keyword, response } = req.body;
-    if (!userId || !keyword || !response) {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'User ID required' });
+
+    const user = users.get(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const response = await axios.get(`https://graph.instagram.com/v19.0/${user.instagram_id}/media`, {
+      params: {
+        fields: 'id,caption,media_url,media_type',
+        access_token: user.access_token
+      },
+      headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID }
+    });
+
+    res.json(response.data.data);
+  } catch (err) {
+    console.error('🔥 User posts error:', serializeError(err));
+    res.status(500).json({ error: 'Error fetching posts' });
+  }
+});
+
+// Save Configuration with post ownership verification
+app.post('/configure', async (req, res) => {
+  try {
+    const { userId, postId, keyword, response } = req.body;
+    if (!userId || !postId || !keyword || !response) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    configurations.set(userId, { keyword, response });
-    console.log(`⚙️ Configuration saved for user ${userId}`);
+    const user = users.get(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Verify user owns the post
+    const postResponse = await axios.get(`https://graph.instagram.com/v19.0/${postId}`, {
+      params: { 
+        fields: 'owner',
+        access_token: user.access_token
+      },
+      headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
+      timeout: 10000
+    });
+
+    if (postResponse.data.owner.id !== user.instagram_id) {
+      return res.status(403).json({ error: 'You do not own this post' });
+    }
+
+    configurations.set(userId, { postId, keyword, response });
+    console.log(`⚙️ Configuration saved for user ${userId} on post ${postId}`);
     res.json({ success: true });
   } catch (err) {
     console.error('🔥 Configuration error:', serializeError(err));
-    res.status(500).json({ error: 'Server error' });
+    
+    let errorMessage = 'Server error';
+    if (err.response) {
+      if (err.response.status === 400) {
+        errorMessage = 'Invalid request to Instagram API';
+      } else if (err.response.status === 404) {
+        errorMessage = 'Post not found';
+      }
+    } else if (err.message.includes('timeout')) {
+      errorMessage = 'Connection to Instagram timed out';
+    }
+    
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -306,54 +359,43 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Comment Handler - Updated with correct API version and error handling
+// Comment Handler - Updated with post filtering
 async function handleCommentEvent(commentData) {
   try {
     const { media_id, text, username } = commentData;
-    console.log(`💬 New comment from ${username}: ${text}`);
+    console.log(`💬 New comment from ${username} on post ${media_id}: ${text}`);
 
-    for (const [userId, user] of users.entries()) {
+    for (const [userId, config] of configurations.entries()) {
       try {
-        // Get media owner
-        const mediaResponse = await axios.get(`https://graph.instagram.com/${media_id}`, {
-          params: {
-            fields: 'owner',
-            access_token: user.access_token
-          },
-          headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
-          timeout: 10000
-        });
+        // Only process if it's the configured post
+        if (media_id !== config.postId) continue;
 
-        const owner_id = mediaResponse.data.owner.id;
+        const user = users.get(userId);
+        if (!user) continue;
 
-        // Check if owner has configuration
-        if (configurations.has(owner_id)) {
-          const { keyword, response } = configurations.get(owner_id);
+        // Check if the comment contains the keyword (case insensitive)
+        if (text.toLowerCase().includes(config.keyword.toLowerCase())) {
+          console.log(`🔑 Keyword match: "${config.keyword}" in comment by ${username}`);
+          
+          const messageText = config.response.replace(/{username}/g, username);
+          console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
+          
+          // Use the correct API version (v19.0) and endpoint
+          await axios.post(`https://graph.instagram.com/v19.0/${user.instagram_id}/messages`, {
+            recipient: { username },
+            message: { 
+              text: messageText
+            }
+          }, {
+            headers: {
+              'Authorization': `Bearer ${user.access_token}`,
+              'Content-Type': 'application/json',
+              'X-IG-App-ID': INSTAGRAM_APP_ID
+            },
+            timeout: 15000
+          });
 
-          // Check if the comment contains the keyword (case insensitive)
-          if (text.toLowerCase().includes(keyword.toLowerCase())) {
-            console.log(`🔑 Keyword match: "${keyword}" in comment by ${username}`);
-            
-            const messageText = response.replace(/{username}/g, username);
-            console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
-            
-            // Use the correct API version (v19.0) and endpoint
-            await axios.post(`https://graph.instagram.com/v19.0/${owner_id}/messages`, {
-              recipient: { username },
-              message: { 
-                text: messageText
-              }
-            }, {
-              headers: {
-                'Authorization': `Bearer ${user.access_token}`,
-                'Content-Type': 'application/json',
-                'X-IG-App-ID': INSTAGRAM_APP_ID
-              },
-              timeout: 15000
-            });
-
-            console.log(`✅ DM sent to ${username} for keyword "${keyword}"`);
-          }
+          console.log(`✅ DM sent to ${username} for keyword "${config.keyword}"`);
         }
       } catch (err) {
         console.error(`🔥 Comment handling error for user ${userId}:`, serializeError(err));
