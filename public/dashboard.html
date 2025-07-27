@@ -73,6 +73,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      color: #405DE6;
       overflow: hidden;
     }
     .user-avatar img {
@@ -158,13 +161,6 @@
       border-radius: 5px;
       object-fit: cover;
       background: #f0f0f0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .post-thumb img {
-      max-width: 100%;
-      max-height: 100%;
     }
     .post-info {
       flex: 1;
@@ -179,11 +175,6 @@
     .post-id {
       font-size: 0.8rem;
       color: #777;
-    }
-    .error-text {
-      color: var(--error-text);
-      font-size: 0.9rem;
-      margin-top: 5px;
     }
     @media (max-width: 768px) {
       .dashboard {
@@ -226,14 +217,12 @@
       <div class="header">
         <h1>Automation Dashboard</h1>
         <div class="user-info">
-          <div class="user-avatar">
-            <img id="profile-pic" src="" alt="Profile Picture" 
-                 onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23405DE6\' stroke-width=\'2\'><circle cx=\'12\' cy=\'8\' r=\'5\'/><path d=\'M20 21a8 8 0 0 0-16 0\'/></svg>'">
+          <div class="user-avatar" id="user-avatar">
+            <img id="profile-pic" src="" alt="Profile Picture">
           </div>
           <div>
-            <div id="username">Loading user...</div>
+            <div id="username">Loading...</div>
             <small id="user-id"></small>
-            <div id="user-error" class="error-text"></div>
           </div>
         </div>
       </div>
@@ -246,7 +235,6 @@
             <select id="postSelect" required>
               <option value="">Loading your posts...</option>
             </select>
-            <div id="post-error" class="error-text"></div>
           </div>
           
           <div class="form-group">
@@ -289,66 +277,44 @@
       document.getElementById('user-id').textContent = `ID: ${userId}`;
       
       // Fetch user details from server
-      fetchUserInfo();
+      fetch(`/user-info?userId=${userId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch user info');
+          return response.json();
+        })
+        .then(data => {
+          if (data.username) {
+            document.getElementById('username').textContent = data.username;
+            // Set profile picture
+            if (data.profile_pic) {
+              document.getElementById('profile-pic').src = data.profile_pic;
+            }
+          }
+        })
+        .catch(error => {
+          console.error('User info fetch error:', error);
+          document.getElementById('username').textContent = 'Instagram User';
+        });
+      
+      // Load user's posts
       loadUserPosts();
     } else {
       window.location.href = '/';
     }
     
-    // Fetch user info with error handling
-    function fetchUserInfo() {
-      const usernameEl = document.getElementById('username');
-      const avatarEl = document.getElementById('profile-pic');
-      const errorEl = document.getElementById('user-error');
-      
-      usernameEl.textContent = 'Loading...';
-      errorEl.textContent = '';
-      
-      fetch(`/user-info?userId=${userId}`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Failed to fetch user info: ' + response.status);
-          }
-          return response.json();
-        })
-        .then(data => {
-          usernameEl.textContent = data.username;
-          if (data.profile_pic) {
-            avatarEl.src = data.profile_pic;
-          }
-        })
-        .catch(error => {
-          console.error('User info fetch error:', error);
-          usernameEl.textContent = 'Instagram User';
-          errorEl.textContent = 'Failed to load profile. Try reloading the page.';
-        });
-    }
-    
-    // Load user's Instagram posts with better error handling
+    // Load user's Instagram posts
     function loadUserPosts() {
       const postSelect = document.getElementById('postSelect');
-      const errorEl = document.getElementById('post-error');
-      
       postSelect.innerHTML = '<option value="">Loading your posts...</option>';
-      errorEl.textContent = '';
       
       fetch(`/user-posts?userId=${userId}`)
         .then(response => {
-          if (!response.ok) {
-            return response.json().then(errData => {
-              throw new Error(errData.error || 'Failed to fetch posts');
-            });
-          }
+          if (!response.ok) throw new Error('Failed to fetch posts');
           return response.json();
         })
         .then(posts => {
-          if (posts.error) {
-            throw new Error(posts.error);
-          }
-          
-          if (!posts || posts.length === 0) {
+          if (posts.length === 0) {
             postSelect.innerHTML = '<option value="">No posts found</option>';
-            errorEl.textContent = 'No Instagram posts found. Make sure you have public posts.';
             return;
           }
           
@@ -358,8 +324,6 @@
             const option = document.createElement('option');
             option.value = post.id;
             
-            // Use thumbnail if available, otherwise use media_url
-            const thumbUrl = post.thumbnail_url || post.media_url;
             const caption = post.caption ? 
               post.caption.substring(0, 30) + (post.caption.length > 30 ? '...' : '') : 
               'Untitled post';
@@ -367,8 +331,8 @@
             option.innerHTML = `
               <div class="post-option">
                 <div class="post-thumb">
-                  ${thumbUrl ? 
-                    `<img src="${thumbUrl}" alt="Post thumbnail" onerror="this.parentNode.innerHTML='📷';">` : 
+                  ${post.media_url ? 
+                    `<img src="${post.media_url}" alt="Post thumbnail">` : 
                     '📷'}
                 </div>
                 <div class="post-info">
@@ -384,7 +348,6 @@
         .catch(error => {
           console.error('Posts fetch error:', error);
           postSelect.innerHTML = '<option value="">Failed to load posts</option>';
-          errorEl.textContent = error.message || 'Error loading Instagram posts. Please try again.';
         });
     }
     
@@ -396,9 +359,6 @@
       const keyword = document.getElementById('keyword').value;
       const response = document.getElementById('response').value;
       const statusEl = document.getElementById('status');
-      
-      // Clear previous status
-      statusEl.style.display = 'none';
       
       if (!postId) {
         statusEl.textContent = 'Please select a post to automate';
