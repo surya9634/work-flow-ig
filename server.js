@@ -11,7 +11,7 @@ console.log('--------------------------------');
 console.log('Environment Configuration:');
 console.log(`PORT: ${port}`);
 console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? 'Set' : '❌ MISSING'}`);
-console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP极狐SECRET ? 'Set' : '❌ MISSING'}`);
+console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? 'Set' : '❌ MISSING'}`);
 console.log(`REDIRECT_URI: ${process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback'}`);
 console.log('--------------------------------');
 
@@ -23,7 +23,7 @@ if (!process.env.INSTAGRAM_APP_ID) {
 
 if (!process.env.INSTAGRAM_APP_SECRET) {
   console.error('❌ Critical Error: INSTAGRAM_APP_SECRET environment variable is missing!');
-  process.exit(1);
+  process极狐.exit(1);
 }
 
 // Middleware
@@ -77,19 +77,10 @@ app.get('/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Instagram Login
+// Instagram Login - Using your specified URL
 app.get('/auth/instagram', (req, res) => {
   try {
-    const scopes = [
-      'instagram_business_basic',
-      'instagram_business_manage_messages',
-      'instagram_business_manage_comments',
-      'instagram_business_content_publish',
-      'instagram_business_manage_insights',
-      'instagram_business_messages'
-    ].join(',');
-    
-    const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}`;
+    const authUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1477959410285896&redirect_uri=https://work-flow-ig-1.onrender.com/auth/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
     
     console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
     res.redirect(authUrl);
@@ -144,9 +135,9 @@ app.get('/auth/callback', async (req, res) => {
       {
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',
-          'X-极狐IG-App-ID': INSTAGRAM_APP_ID
+          'X-IG-App-ID': INSTAGRAM_APP_ID  // Fixed header name
         },
-        timeout: 15000  // 15 seconds timeout
+        timeout: 15000
       }
     );
 
@@ -156,32 +147,31 @@ app.get('/auth/callback', async (req, res) => {
 
     console.log('✅ Token exchange successful');
     const access_token = tokenResponse.data.access_token;
-    const user_id = String(tokenResponse.data.user_id); // Convert to string to prevent type issues
+    const user_id = String(tokenResponse.data.user_id);
 
     // Get user profile with retry mechanism
     let profileResponse;
     let retryCount = 0;
     const maxRetries = 3;
-    const retryDelays = [2000, 4000, 8000]; // 2s, 4s, 8s
+    const retryDelays = [2000, 4000, 8000];
     
     while (retryCount <= maxRetries) {
       try {
         console.log(`👤 Fetching user profile (attempt ${retryCount + 1} of ${maxRetries + 1})...`);
-        // Use the /me endpoint with the access token
         profileResponse = await axios.get(`https://graph.instagram.com/me`, {
           params: { 
             fields: 'id,username,profile_picture_url',
             access_token: access_token
           },
           headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
-          timeout: 20000  // 20 seconds timeout
+          timeout: 20000
         });
 
         if (!profileResponse.data || !profileResponse.data.username) {
           throw new Error('Invalid profile response: ' + JSON.stringify(profileResponse.data));
         }
         
-        break; // Break out of loop if successful
+        break;
       } catch (err) {
         if (retryCount >= maxRetries) {
           console.error(`🔥 Failed after ${maxRetries + 1} attempts`);
@@ -204,7 +194,7 @@ app.get('/auth/callback', async (req, res) => {
       profile_pic: profileResponse.data.profile_picture_url,
       instagram_id: user_id,
       last_login: new Date(),
-      code // Store code for reuse handling
+      code
     };
     users.set(user_id, userData);
 
@@ -213,7 +203,6 @@ app.get('/auth/callback', async (req, res) => {
     const errorMsg = serializeError(err);
     console.error('🔥 Authentication error:', errorMsg);
     
-    // User-friendly error message
     let userMessage = 'Instagram login failed. Please try again.';
     
     if (err.response) {
