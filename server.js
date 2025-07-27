@@ -9,13 +9,17 @@ const port = process.env.PORT || 10000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Instagram API Configuration
-const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID;
-const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
-const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'WORKFLOW_VERIFY_TOKEN';
+// Instagram API Configuration - USING YOUR APP ID
+const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID || '1477959410285896';
+const INSTAGRAM_APP_SECRET = process.env.8ccbc2e1a98cecf839bffa956928ba73;
+const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback';
+const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'hello';
 
-// In-memory storage (Replace with database in production)
+// Debugging output
+console.log('Using Instagram App ID:', INSTAGRAM_APP_ID);
+console.log('Using Redirect URI:', REDIRECT_URI);
+
+// In-memory storage
 const users = new Map();
 const configurations = new Map();
 
@@ -28,7 +32,7 @@ app.get('/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Instagram Login (Using your provided format)
+// Instagram Login (Using your specific parameters)
 app.get('/auth/instagram', (req, res) => {
   const scopes = [
     'instagram_business_basic',
@@ -38,39 +42,59 @@ app.get('/auth/instagram', (req, res) => {
     'instagram_business_manage_insights'
   ].join('%2C'); // URL-encoded comma
 
+  // Using YOUR SPECIFIC APP ID AND REDIRECT URI
   const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}`;
   
+  console.log('Redirecting to Instagram Auth URL:', authUrl);
   res.redirect(authUrl);
 });
 
 // Instagram Callback
 app.get('/auth/callback', async (req, res) => {
   try {
+    console.log('Received Instagram callback:', req.query);
     const { code, error, error_reason } = req.query;
+    
     if (error) {
       throw new Error(`OAuth error: ${error_reason} - ${error}`);
     }
 
-    // Exchange code for access token
-    const tokenResponse = await axios.post('https://api.instagram.com/oauth/access_token', null, {
-      params: {
-        client_id: INSTAGRAM_APP_ID,
-        client_secret: INSTAGRAM_APP_SECRET,
-        grant_type: 'authorization_code',
-        redirect_uri: REDIRECT_URI,
-        code
-      }
-    });
+    if (!code) {
+      throw new Error('Authorization code is missing');
+    }
 
+    // Exchange code for access token
+    const tokenData = new URLSearchParams();
+    tokenData.append('client_id', INSTAGRAM_APP_ID);
+    tokenData.append('client_secret', INSTAGRAM_APP_SECRET);
+    tokenData.append('grant_type', 'authorization_code');
+    tokenData.append('redirect_uri', REDIRECT_URI);
+    tokenData.append('code', code);
+
+    console.log('Exchanging code for token with:', tokenData.toString());
+
+    const tokenResponse = await axios.post(
+      'https://api.instagram.com/oauth/access_token',
+      tokenData,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    console.log('Token response:', tokenResponse.data);
     const { access_token, user_id } = tokenResponse.data;
 
-    // Get user profile using Instagram Graph API
+    // Get user profile
     const profileResponse = await axios.get(`https://graph.instagram.com/${user_id}`, {
       params: {
         fields: 'id,username',
         access_token: access_token
       }
     });
+
+    console.log('Profile response:', profileResponse.data);
 
     // Store user data
     const userData = {
@@ -85,9 +109,16 @@ app.get('/auth/callback', async (req, res) => {
   } catch (error) {
     console.error('Authentication error:', error.response ? error.response.data : error.message);
     let errorMessage = 'Instagram login failed. Please try again.';
-    if (error.response && error.response.data && error.response.data.error_message) {
-      errorMessage = error.response.data.error_message;
+    
+    if (error.response && error.response.data) {
+      // Handle Instagram API errors
+      if (error.response.data.error_message) {
+        errorMessage = error.response.data.error_message;
+      } else if (error.response.data.error) {
+        errorMessage = `${error.response.data.error}: ${error.response.data.error_description}`;
+      }
     }
+    
     res.redirect(`/?error=auth_failed&message=${encodeURIComponent(errorMessage)}`);
   }
 });
@@ -209,9 +240,22 @@ async function handleCommentEvent(commentData) {
   }
 }
 
+// Debug endpoint
+app.get('/debug', (req, res) => {
+  res.json({
+    status: 'running',
+    app_id: INSTAGRAM_APP_ID,
+    redirect_uri: REDIRECT_URI,
+    users_count: users.size,
+    configs_count: configurations.size
+  });
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log(`Instagram App ID: ${INSTAGRAM_APP_ID}`);
+  console.log(`Redirect URI: ${REDIRECT_URI}`);
   if (process.env.RENDER) {
     console.log(`Live at: https://${process.env.RENDER_EXTERNAL_HOSTNAME}`);
   }
