@@ -11,6 +11,8 @@
       --accent: #FD1D1D;
       --light: #F5F5F5;
       --dark: #262626;
+      --error-bg: #ffebee;
+      --error-text: #b71c1c;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -18,6 +20,7 @@
       background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
       color: var(--dark);
       line-height: 1.6;
+      min-height: 100vh;
     }
     .container {
       max-width: 1000px;
@@ -95,13 +98,45 @@
       color: #777;
       font-size: 0.9rem;
     }
+    .error-notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--error-bg);
+      color: var(--error-text);
+      padding: 15px 25px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 1000;
+      max-width: 90%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .error-notification button {
+      background: var(--error-text);
+      color: white;
+      border: none;
+      padding: 5px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      align-self: center;
+    }
     @media (max-width: 768px) {
       .container { padding: 1rem; }
       .logo { font-size: 2.5rem; }
+      .error-notification {
+        width: 95%;
+        padding: 10px 15px;
+      }
     }
   </style>
 </head>
 <body>
+  <div id="errorContainer" class="error-notification" style="display: none;"></div>
+  
   <div class="container">
     <header>
       <div class="logo">Workflow</div>
@@ -142,12 +177,29 @@
       window.location.href = '/auth/instagram';
     }
     
-    // Handle auth errors
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('error') === 'auth_failed') {
-      const errorMessage = urlParams.get('message') || 'Instagram login failed. Please try again.';
-      alert(`Error: ${errorMessage}\n\nMake sure:\n1. You're using a Business Account\n2. You've granted all permissions`);
+    // Enhanced error handling
+    function showError(message) {
+      const container = document.getElementById('errorContainer');
+      container.innerHTML = `
+        <strong>Login Error:</strong> ${message}
+        <button onclick="this.parentNode.style.display='none'">Dismiss</button>
+      `;
+      container.style.display = 'flex';
+      
+      // Auto-dismiss after 10 seconds
+      setTimeout(() => {
+        container.style.display = 'none';
+      }, 10000);
     }
+
+    // Handle auth errors
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('error') === 'auth_failed') {
+        const errorMessage = urlParams.get('message') || 'Instagram login failed. Please try again.';
+        showError(errorMessage);
+      }
+    });
   </script>
 </body>
 </html>
