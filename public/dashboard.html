@@ -11,6 +11,10 @@
       --light: #F8FAFF;
       --dark: #262626;
       --gray: #8E8E8E;
+      --error-bg: #ffebee;
+      --error-text: #b71c1c;
+      --success-bg: #e6f7ee;
+      --success-text: #0a8f4e;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -130,13 +134,13 @@
       display: none;
     }
     .success {
-      background: #e6f7ee;
-      color: #0a8f4e;
+      background: var(--success-bg);
+      color: var(--success-text);
       border: 1px solid #a3e9c0;
     }
     .error {
-      background: #fdecea;
-      color: #d93025;
+      background: var(--error-bg);
+      color: var(--error-text);
       border: 1px solid #f5c2c7;
     }
     @media (max-width: 768px) {
@@ -266,6 +270,11 @@
           body: JSON.stringify({ userId, keyword, response })
         });
         
+        if (!result.ok) {
+          const errorData = await result.json();
+          throw new Error(errorData.error || 'Failed to save configuration');
+        }
+        
         const data = await result.json();
         if (data.success) {
           statusEl.textContent = 'Configuration saved successfully!';
@@ -278,7 +287,7 @@
           }, 3000);
         }
       } catch (error) {
-        statusEl.textContent = 'Error saving configuration. Please try again.';
+        statusEl.textContent = error.message || 'Error saving configuration. Please try again.';
         statusEl.className = 'status error';
         statusEl.style.display = 'block';
       }
