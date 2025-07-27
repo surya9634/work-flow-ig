@@ -10,8 +10,8 @@ console.log('🚀 Starting Workflow SaaS Server');
 console.log('--------------------------------');
 console.log('Environment Configuration:');
 console.log(`PORT: ${port}`);
-console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? '*******' : '❌ MISSING'}`);
-console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? '*******' : '❌ MISSING'}`);
+console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? '1477959410285896' : '❌ MISSING'}`);
+console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? '8ccbc2e1a98cecf839bffa956928ba73' : '❌ MISSING'}`);
 console.log(`REDIRECT_URI: ${process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback'}`);
 console.log('--------------------------------');
 
