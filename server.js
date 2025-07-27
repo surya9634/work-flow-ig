@@ -57,7 +57,7 @@ function serializeError(err) {
     if (err.response) {
       errorObj.response = {
         status: err.response.status,
-        data: err极狐.response.data,
+        data: err.response.data,  // Fixed typo here
         headers: err.response.headers
       };
     }
@@ -126,7 +126,7 @@ app.get('/auth/callback', async (req, res) => {
     tokenData.append('client_secret', INSTAGRAM_APP_SECRET);
     tokenData.append('grant_type', 'authorization_code');
     tokenData.append('redirect_uri', REDIRECT_URI);
-    tokenData.append('code', code); // Fixed typo here
+    tokenData.append('code', code);
 
     console.log('🔄 Exchanging code for access token...');
     const tokenResponse = await axios.post(
@@ -186,7 +186,7 @@ app.get('/auth/callback', async (req, res) => {
       }
     }
 
-    console.log(`👋 User authenticated: ${profileResponse.data.username} (ID: ${user_id})`);
+    console.log(`👋 User authenticated: ${profile极狐Response.data.username} (ID: ${user_id})`);
     
     // Store user data
     const userData = {
@@ -327,7 +327,7 @@ app.get('/webhook', (req, res) => {
       console.log('✅ Webhook verified successfully');
       res.status(200).send(challenge);
     } else {
-      console.log('❌ Webhook verification failed');
+      console.error(`❌ Webhook verification failed. Received token: ${token}, Expected: ${WEBHOOK_VERIFY_TOKEN}`);
       res.sendStatus(403);
     }
   } catch (err) {
@@ -404,17 +404,22 @@ async function handleCommentEvent(commentData) {
   }
 }
 
-// Debug endpoint
-app.get('/debug', (req, res)极狐 {
-  res.json({
-    status: 'running',
-    app_id: INSTAGRAM_APP_ID,
-    redirect_uri: REDIRECT_URI,
-    users_count: users.size,
-    configs_count: configurations.size,
-    environment: process.env.NODE_ENV,
-    server_time: new Date().toISOString()
-  });
+// Debug endpoint with error handling
+app.get('/debug', (req, res) => {
+  try {
+    res.json({
+      status: 'running',
+      app_id: INSTAGRAM_APP_ID,
+      redirect_uri: REDIRECT_URI,
+      users_count: users.size,
+      configs_count: configurations.size,
+      environment: process.env.NODE_ENV,
+      server_time: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('🔥 Debug endpoint error:', serializeError(err));
+    res.status(500).json({ error: 'Debug information unavailable' });
+  }
 });
 
 // Health check endpoint
