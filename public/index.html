@@ -82,7 +82,7 @@
       align-items: center;
       gap: 10px;
     }
-    .feature-card ol {
+    .feature-card ol, .feature-card ul {
       padding-left: 1.5rem;
     }
     .feature-card li {
@@ -131,6 +131,10 @@
         </ul>
       </div>
     </div>
+    
+    <footer>
+      <p>&copy; 2023 Workflow. All rights reserved.</p>
+    </footer>
   </div>
 
   <script>
@@ -141,7 +145,8 @@
     // Handle auth errors
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('error') === 'auth_failed') {
-      alert('Instagram login failed. Please make sure you have a Business Account and try again.');
+      const errorMessage = urlParams.get('message') || 'Instagram login failed. Please try again.';
+      alert(`Error: ${errorMessage}\n\nMake sure:\n1. You're using a Business Account\n2. You've granted all permissions`);
     }
   </script>
 </body>
