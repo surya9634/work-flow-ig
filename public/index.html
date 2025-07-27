@@ -5,26 +5,131 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Workflow - Instagram Automation</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-    .container { text-align: center; margin-top: 50px; }
-    .btn { background-color: #405DE6; color: white; padding: 12px 24px; 
-           border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
-    .features { margin-top: 40px; text-align: left; }
+    :root {
+      --primary: #405DE6;
+      --secondary: #833AB4;
+      --accent: #FD1D1D;
+      --light: #F5F5F5;
+      --dark: #262626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+      color: var(--dark);
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    header {
+      text-align: center;
+      padding: 2rem 0;
+    }
+    .logo {
+      font-size: 3rem;
+      font-weight: 800;
+      background: linear-gradient(45deg, var(--primary), var(--secondary), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 1rem;
+    }
+    .tagline {
+      font-size: 1.2rem;
+      color: #555;
+      margin-bottom: 2rem;
+    }
+    .btn {
+      display: inline-block;
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 14px 32px;
+      border: none;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 4px 15px rgba(64, 93, 230, 0.3);
+    }
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(64, 93, 230, 0.4);
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin: 3rem 0;
+    }
+    .feature-card {
+      background: white;
+      border-radius: 15px;
+      padding: 2rem;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+    }
+    .feature-card h3 {
+      color: var(--primary);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .feature-card ol {
+      padding-left: 1.5rem;
+    }
+    .feature-card li {
+      margin-bottom: 0.8rem;
+    }
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding: 1rem;
+      color: #777;
+      font-size: 0.9rem;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .logo { font-size: 2.5rem; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Workflow</h1>
-    <p>Instagram Comment Automation Platform</p>
-    <button class="btn" onclick="loginWithInstagram()">Login with Instagram</button>
+    <header>
+      <div class="logo">Workflow</div>
+      <p class="tagline">Automate Instagram Engagement & Grow Your Audience</p>
+      <button class="btn" onclick="loginWithInstagram()">Get Started with Instagram</button>
+    </header>
     
     <div class="features">
-      <h3>How It Works:</h3>
-      <ol>
-        <li>Connect your Instagram Business Account</li>
-        <li>Set up keywords and automated responses</li>
-        <li>When someone comments with your keyword, we automatically send them a DM</li>
-      </ol>
+      <div class="feature-card">
+        <h3>🚀 How It Works</h3>
+        <ol>
+          <li>Connect your Instagram Business Account</li>
+          <li>Set up keywords and automated responses</li>
+          <li>When someone comments with your keyword, we send them a personalized DM</li>
+          <li>Track engagement and grow your audience</li>
+        </ol>
+      </div>
+      
+      <div class="feature-card">
+        <h3>💡 Key Features</h3>
+        <ul>
+          <li>Keyword-triggered DM responses</li>
+          <li>Personalized messages with {username} placeholder</li>
+          <li>Real-time comment monitoring</li>
+          <li>Instagram Business Account integration</li>
+          <li>Simple dashboard for configuration</li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -36,7 +141,7 @@
     // Handle auth errors
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('error') === 'auth_failed') {
-      alert('Instagram login failed. Please try again.');
+      alert('Instagram login failed. Please make sure you have a Business Account and try again.');
     }
   </script>
 </body>
