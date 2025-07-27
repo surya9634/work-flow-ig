@@ -13,6 +13,8 @@
       --dark: #262626;
       --error-bg: #ffebee;
       --error-text: #b71c1c;
+      --success-bg: #e6f7ee;
+      --success-text: #0a8f4e;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -149,6 +151,7 @@
         <h3>🚀 How It Works</h3>
         <ol>
           <li>Connect your Instagram Business Account</li>
+          <li>Select which post to monitor for comments</li>
           <li>Set up keywords and automated responses</li>
           <li>When someone comments with your keyword, we send them a personalized DM</li>
           <li>Track engagement and grow your audience</li>
@@ -158,6 +161,7 @@
       <div class="feature-card">
         <h3>💡 Key Features</h3>
         <ul>
+          <li>Select specific posts to automate</li>
           <li>Keyword-triggered DM responses</li>
           <li>Personalized messages with {username} placeholder</li>
           <li>Real-time comment monitoring</li>
@@ -198,6 +202,10 @@
       if (urlParams.get('error') === 'auth_failed') {
         const errorMessage = urlParams.get('message') || 'Instagram login failed. Please try again.';
         showError(errorMessage);
+        
+        // Clear error from URL
+        const cleanUrl = window.location.href.split('?')[0];
+        window.history.replaceState({}, document.title, cleanUrl);
       }
     });
   </script>
