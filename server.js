@@ -11,7 +11,7 @@ console.log('--------------------------------');
 console.log('Environment Configuration:');
 console.log(`PORT: ${port}`);
 console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? 'Set' : '❌ MISSING'}`);
-console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? 'Set' : '❌ MISSING'}`);
+console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP极狐SECRET ? 'Set' : '❌ MISSING'}`);
 console.log(`REDIRECT_URI: ${process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback'}`);
 console.log('--------------------------------');
 
@@ -33,7 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Instagram API Configuration
 const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID;
 const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-极狐ig-1.onrender.com/auth/callback';
+const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback';
 const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'WORKFLOW_VERIFY_TOKEN';
 
 // In-memory storage
@@ -80,7 +80,16 @@ app.get('/dashboard.html', (req, res) => {
 // Instagram Login
 app.get('/auth/instagram', (req, res) => {
   try {
-    const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
+    const scopes = [
+      'instagram_business_basic',
+      'instagram_business_manage_messages',
+      'instagram_business_manage_comments',
+      'instagram_business_content_publish',
+      'instagram_business_manage_insights',
+      'instagram_business_messages'
+    ].join(',');
+    
+    const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}`;
     
     console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
     res.redirect(authUrl);
@@ -135,7 +144,7 @@ app.get('/auth/callback', async (req, res) => {
       {
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',
-          'X-IG-App-ID': INSTAGRAM_APP_ID
+          'X-极狐IG-App-ID': INSTAGRAM_APP_ID
         },
         timeout: 15000  // 15 seconds timeout
       }
@@ -261,6 +270,32 @@ app.get('/user-posts', async (req, res) => {
   }
 });
 
+// Get Comments for a Specific Post
+app.get('/post-comments', async (req, res) => {
+  try {
+    const { userId, postId } = req.query;
+    if (!userId || !postId) {
+      return res.status(400).json({ error: 'User ID and Post ID required' });
+    }
+
+    const user = users.get(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const response = await axios.get(`https://graph.instagram.com/v19.0/${postId}/comments`, {
+      params: {
+        fields: 'id,text,username,timestamp',
+        access_token: user.access_token
+      },
+      headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID }
+    });
+
+    res.json(response.data.data || []);
+  } catch (err) {
+    console.error('🔥 Post comments error:', serializeError(err));
+    res.status(500).json({ error: 'Error fetching comments' });
+  }
+});
+
 // Save Configuration
 app.post('/configure', async (req, res) => {
   try {
@@ -293,13 +328,46 @@ app.post('/configure', async (req, res) => {
   }
 });
 
+// Send Manual Message
+app.post('/send-manual-message', async (req, res) => {
+  try {
+    const { userId, username, message } = req.body;
+    if (!userId || !username || !message) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const user = users.get(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    console.log(`✉️ Sending manual DM to ${username}: ${message.substring(0, 50)}...`);
+    
+    await axios.post(`https://graph.facebook.com/v19.0/${user.instagram_id}/messages`, {
+      recipient: { username },
+      message: { text: message }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${user.access_token}`,
+        'Content-Type': 'application/json',
+        'X-IG-App-ID': INSTAGRAM_APP_ID
+      },
+      timeout: 15000
+    });
+
+    console.log(`✅ Manual DM sent to ${username}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('🔥 Manual message error:', serializeError(err));
+    res.status(500).json({ error: 'Error sending message' });
+  }
+});
+
 // Get User Info
 app.get('/user-info', (req, res) => {
   try {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: 'User ID required' });
 
-    const user = users.get(user极狐Id);
+    const user = users.get(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.json({
@@ -356,7 +424,7 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Comment Handler
+// Comment Handler - Updated with post filtering
 async function handleCommentEvent(commentData) {
   try {
     const { media_id, text, username } = commentData;
@@ -377,7 +445,8 @@ async function handleCommentEvent(commentData) {
           const messageText = config.response.replace(/{username}/g, username);
           console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
           
-          await axios.post(`https://graph.instagram.com/v19.0/${user.instagram_id}/messages`, {
+          // Use the correct API endpoint for sending DMs
+          await axios.post(`https://graph.facebook.com/v19.0/${user.instagram_id}/messages`, {
             recipient: { username },
             message: { 
               text: messageText
