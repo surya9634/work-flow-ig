@@ -65,8 +65,13 @@
       width: 50px;
       height: 50px;
       border-radius: 50%;
-      object-fit: cover;
       background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      color: #405DE6;
     }
     .card {
       background: white;
@@ -175,9 +180,9 @@
       <div class="header">
         <h1>Automation Dashboard</h1>
         <div class="user-info">
-          <div class="user-avatar" id="user-avatar"></div>
+          <div class="user-avatar" id="user-avatar">IG</div>
           <div>
-            <div id="username"></div>
+            <div id="username">Loading...</div>
             <small id="user-id"></small>
           </div>
         </div>
@@ -210,6 +215,7 @@
           <li>Make sure your Instagram account is set to <strong>Professional Account</strong></li>
           <li>Test with your personal account before going live</li>
           <li>Messages will be sent from your Instagram account</li>
+          <li>Use {username} in your response to personalize messages</li>
         </ol>
       </div>
     </div>
@@ -220,22 +226,25 @@
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('user_id');
     
-    // Display user info
     if (userId) {
       document.getElementById('user-id').textContent = `ID: ${userId}`;
       
       // Fetch user details from server
       fetch(`/user-info?userId=${userId}`)
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch user info');
+          return response.json();
+        })
         .then(data => {
           if (data.username) {
             document.getElementById('username').textContent = data.username;
-          }
-          if (data.profile_pic) {
-            document.getElementById('user-avatar').style.backgroundImage = `url(${data.profile_pic})`;
+            // Set avatar initials
+            const initials = data.username.charAt(0).toUpperCase();
+            document.getElementById('user-avatar').textContent = initials;
           }
         })
         .catch(error => {
+          console.error('User info fetch error:', error);
           document.getElementById('username').textContent = 'Instagram User';
         });
     } else {
