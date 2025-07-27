@@ -10,8 +10,8 @@ console.log('🚀 Starting Workflow SaaS Server');
 console.log('--------------------------------');
 console.log('Environment Configuration:');
 console.log(`PORT: ${port}`);
-console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? '1477959410285896' : '❌ MISSING'}`);
-console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? '8ccbc2e1a98cecf839bffa956928ba73' : '❌ MISSING'}`);
+console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? 'set' : '❌ MISSING'}`);
+console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? 'set' : '❌ MISSING'}`);
 console.log(`REDIRECT_URI: ${process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback'}`);
 console.log('--------------------------------');
 
@@ -81,14 +81,12 @@ app.get('/dashboard.html', (req, res) => {
 app.get('/auth/instagram', (req, res) => {
   try {
     const scopes = [
-      'instagram_business_basic',
-      'instagram_business_manage_messages',
-      'instagram_business_manage_comments',
-      'instagram_business_content_publish',
-      'instagram_business_manage_insights'
+      'instagram_basic',
+      'instagram_manage_comments',
+      'instagram_manage_messages'
     ].join(',');
 
-    const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}`;
+    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scopes}&response_type=code`;
     
     console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
     res.redirect(authUrl);
@@ -192,7 +190,7 @@ app.get('/auth/callback', async (req, res) => {
     const userData = {
       access_token,
       username: profileResponse.data.username,
-      profile_pic: profileResponse.data.profile_picture_url,
+      profile_pic: profileResponse.data.profile_picture_url || `https://graph.instagram.com/${user_id}/picture?type=large`,
       instagram_id: user_id,
       last_login: new Date()
     };
@@ -235,18 +233,43 @@ app.get('/user-posts', async (req, res) => {
     const user = users.get(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const response = await axios.get(`https://graph.instagram.com/v19.0/${user.instagram_id}/media`, {
+    console.log(`📸 Fetching posts for user ${userId}...`);
+    
+    const response = await axios.get(`https://graph.instagram.com/me/media`, {
       params: {
-        fields: 'id,caption,media_url,media_type',
+        fields: 'id,caption,media_url,media_type,thumbnail_url',
         access_token: user.access_token
       },
-      headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID }
+      headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
+      timeout: 15000
     });
 
-    res.json(response.data.data);
+    // Filter for image and video posts only
+    const validPosts = response.data.data.filter(post => 
+      post.media_type === 'IMAGE' || post.media_type === 'VIDEO'
+    );
+
+    console.log(`✅ Found ${validPosts.length} posts for user ${userId}`);
+    res.json(validPosts);
   } catch (err) {
     console.error('🔥 User posts error:', serializeError(err));
-    res.status(500).json({ error: 'Error fetching posts' });
+    
+    let errorMessage = 'Error fetching posts';
+    if (err.response) {
+      if (err.response.status === 400) {
+        errorMessage = 'Invalid request to Instagram API';
+      } else if (err.response.status === 403) {
+        errorMessage = 'Permission denied - check app permissions';
+      } else if (err.response.status === 404) {
+        errorMessage = 'User not found on Instagram';
+      } else if (err.response.data && err.response.data.error) {
+        errorMessage = `Instagram API error: ${err.response.data.error.message}`;
+      }
+    } else if (err.message.includes('timeout')) {
+      errorMessage = 'Connection to Instagram timed out';
+    }
+    
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -262,7 +285,7 @@ app.post('/configure', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     // Verify user owns the post
-    const postResponse = await axios.get(`https://graph.instagram.com/v19.0/${postId}`, {
+    const postResponse = await axios.get(`https://graph.instagram.com/${postId}`, {
       params: { 
         fields: 'owner',
         access_token: user.access_token
@@ -296,19 +319,26 @@ app.post('/configure', async (req, res) => {
   }
 });
 
-// Get User Info - Updated to return profile picture
+// Get User Info - Fixed profile picture URL
 app.get('/user-info', (req, res) => {
   try {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: 'User ID required' });
 
+    console.log(`👤 Fetching user info for ${userId}`);
     const user = users.get(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Ensure proper profile picture URL
+    let profilePic = user.profile_pic;
+    if (!profilePic || !profilePic.startsWith('http')) {
+      profilePic = `https://graph.instagram.com/${user.instagram_id}/picture?type=large`;
+    }
 
     res.json({
       username: user.username,
       instagram_id: user.instagram_id,
-      profile_pic: user.profile_pic
+      profile_pic: profilePic
     });
   } catch (err) {
     console.error('🔥 User info error:', serializeError(err));
@@ -380,8 +410,8 @@ async function handleCommentEvent(commentData) {
           const messageText = config.response.replace(/{username}/g, username);
           console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
           
-          // Use the correct API version (v19.0) and endpoint
-          await axios.post(`https://graph.instagram.com/v19.0/${user.instagram_id}/messages`, {
+          // Use the correct API endpoint
+          await axios.post(`https://graph.instagram.com/${user.instagram_id}/messages`, {
             recipient: { username },
             message: { 
               text: messageText
