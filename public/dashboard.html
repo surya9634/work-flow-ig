@@ -28,9 +28,12 @@
       min-height: 100vh;
     }
     .sidebar {
-      background: linear-gradient(180极狐deg, var(--primary), var(--secondary));
+      background: linear-gradient(180deg, var(--primary), var(--secondary));
       color: white;
       padding: 2rem 1rem;
+      position: fixed;
+      width: 250px;
+      height: 100vh;
     }
     .brand {
       font-size: 1.5rem;
@@ -53,6 +56,8 @@
     }
     .main-content {
       padding: 2rem;
+      margin-left: 250px;
+      width: calc(100% - 250px);
     }
     .header {
       display: flex;
@@ -93,6 +98,8 @@
     .card h2 {
       margin-bottom: 1.5rem;
       color: var(--primary);
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
     }
     .form-group {
       margin-bottom: 1.5rem;
@@ -110,10 +117,12 @@
       border-radius: 8px;
       font-size: 1rem;
       transition: border 0.3s;
+      background: #f9f9f9;
     }
     input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--primary);
+      background: #fff;
     }
     textarea {
       min-height: 120px;
@@ -176,6 +185,14 @@
       font-size: 0.8rem;
       color: #777;
     }
+    .comments-container {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
     .comment-item {
       padding: 10px;
       border-bottom: 1px solid #eee;
@@ -186,22 +203,51 @@
     .comment-item:hover {
       background-color: #f5f5f5;
     }
-    .comments-container {
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid #eee;
-      padding: 10px;
+    .post-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 10px;
+    }
+    .post-card {
+      border: 1px solid #ddd;
       border-radius: 8px;
-      margin-bottom: 15px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .post-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .post-card.selected {
+      border-color: #405DE6;
+      box-shadow: 0 0 0 2px #405DE6;
+    }
+    .post-card img {
+      width: 100%;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+    }
+    .post-card-caption {
+      padding: 10px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     @media (max-width: 768px) {
       .dashboard {
         grid-template-columns: 1fr;
       }
       .sidebar {
-        display: none;
+        position: relative;
+        width: 100%;
+        height: auto;
       }
       .main-content {
+        margin-left: 0;
+        width: 100%;
         padding: 1rem;
       }
     }
@@ -228,7 +274,7 @@
       </div>
       <div class="nav-item">
         <span>👤 Account</span>
-      </极狐div>
+      </div>
     </div>
     
     <div class="main-content">
@@ -242,7 +288,7 @@
             <div id="username">Loading...</div>
             <small id="user-id"></small>
           </div>
-        </div>
+        </极狐div>
       </div>
       
       <div class="card">
@@ -250,9 +296,10 @@
         <form id="configForm">
           <div class="form-group">
             <label for="postSelect">Select Post to Automate</label>
-            <select id="postSelect" required>
-              <option value="">Loading your posts...</option>
-            </select>
+            <div id="postsContainer" class="post-grid">
+              <!-- Posts will be loaded here as cards -->
+            </div>
+            <input type="hidden" id="postId" name="postId" required>
           </div>
           
           <div class="form-group">
@@ -349,10 +396,10 @@
       window.location.href = '/';
     }
     
-    // Load user's Instagram posts
+    // Load user's Instagram posts as cards
     function loadUserPosts() {
-      const postSelect = document.getElementById('postSelect');
-      postSelect.innerHTML = '<option value="">Loading your posts...</option>';
+      const postsContainer = document.getElementById('postsContainer');
+      postsContainer.innerHTML = '<p>Loading your posts...</p>';
       
       fetch(`/user-posts?userId=${userId}`)
         .then(response => {
@@ -361,40 +408,45 @@
         })
         .then(posts => {
           if (posts.length === 0) {
-            postSelect.innerHTML = '<option value="">No posts found</option>';
+            postsContainer.innerHTML = '<p>No posts found</p>';
             return;
           }
           
-          postSelect.innerHTML = '<option value="">Select a post to automate</option>';
+          postsContainer.innerHTML = '';
           
           posts.forEach(post => {
-            const option = document.createElement('option');
-            option.value = post.id;
+            const card = document.createElement('div');
+            card.className = 'post-card';
+            card.dataset.id = post.id;
             
-            const caption = post.caption ? 
+            const img = document.createElement('img');
+            img.src = post.media_url || 'https://via.placeholder.com/150';
+            img.alt = 'Post thumbnail';
+            
+            const caption = document.createElement('div');
+            caption.className = 'post-card-caption';
+            caption.textContent = post.caption ? 
               post.caption.substring(0, 30) + (post.caption.length > 30 ? '...' : '') : 
               'Untitled post';
             
-            const imgUrl = post.media_url;
+            card.appendChild(img);
+            card.appendChild(caption);
             
-            option.innerHTML = `
-              <div class="post-option">
-                ${imgUrl ? 
-                  `<img src="${imgUrl}" alt="Post thumbnail" class="post-thumb">` : 
-                  '<div class="post-thumb">📷</div>'}
-                <div class="post-info">
-                  <div class="post-caption">${caption}</div>
-                  <div class="post-id">ID: ${post.id}</div>
-                </div>
-              </div>
-            `;
+            card.addEventListener('click', () => {
+              // Remove selected class from all cards
+              document.querySelectorAll('.post-card').forEach(c => c.classList.remove('selected'));
+              // Add selected class to clicked card
+              card.classList.add('selected');
+              // Set the hidden input value
+              document.getElementById('postId').value = post.id;
+            });
             
-            postSelect.appendChild(option);
+            postsContainer.appendChild(card);
           });
         })
         .catch(error => {
           console.error('Posts fetch error:', error);
-          postSelect.innerHTML = '<option value="">Failed to load posts</option>';
+          postsContainer.innerHTML = '<p>Failed to load posts</p>';
         });
     }
     
@@ -402,7 +454,7 @@
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const postId = document.getElementById('postSelect').value;
+      const postId = document.getElementById('postId').value;
       const keyword = document.getElementById('keyword').value;
       const response = document.getElementById('response').value;
       const statusEl = document.getElementById('status');
@@ -446,7 +498,7 @@
     
     // View Comments Button Handler
     document.getElementById('viewCommentsBtn').addEventListener('click', () => {
-      const postId = document.getElementById('postSelect').value;
+      const postId = document.getElementById('postId').value;
       if (!postId) {
         alert('Please select a post first');
         return;
