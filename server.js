@@ -253,7 +253,7 @@ app.get('/user-posts', async (req, res) => {
   }
 });
 
-// Save Configuration with post ownership verification
+// Save Configuration with improved ownership verification
 app.post('/configure', async (req, res) => {
   try {
     const { userId, postId, keyword, response } = req.body;
@@ -274,7 +274,9 @@ app.post('/configure', async (req, res) => {
       timeout: 10000
     });
 
-    if (postResponse.data.owner.id !== user.instagram_id) {
+    // Convert both IDs to string for reliable comparison
+    if (String(postResponse.data.owner.id) !== String(user.instagram_id)) {
+      console.log(`🚫 Ownership mismatch: User ${user.instagram_id} vs Post Owner ${postResponse.data.owner.id}`);
       return res.status(403).json({ error: 'You do not own this post' });
     }
 
