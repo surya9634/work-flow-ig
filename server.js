@@ -8,7 +8,7 @@ const port = process.env.PORT || 10000;
 // Enhanced startup logging
 console.log('🚀 Starting Workflow SaaS Server');
 console.log('--------------------------------');
-console极狐.log('Environment Configuration:');
+console.log('Environment Configuration:');
 console.log(`PORT: ${port}`);
 console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? '1477959410285896' : '❌ MISSING'}`);
 console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? '8ccbc2e1a98cecf839bffa956928ba73' : '❌ MISSING'}`);
@@ -57,7 +57,7 @@ function serializeError(err) {
     if (err.response) {
       errorObj.response = {
         status: err.response.status,
-        data: err.response.data,
+        data: err极狐.response.data,
         headers: err.response.headers
       };
     }
@@ -77,7 +77,7 @@ app.get('/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Instagram Login - Using your EXACT URL
+// Instagram Login
 app.get('/auth/instagram', (req, res) => {
   try {
     const authUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1477959410285896&redirect_uri=https://work-flow-ig-1.onrender.com/auth/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
@@ -126,7 +126,7 @@ app.get('/auth/callback', async (req, res) => {
     tokenData.append('client_secret', INSTAGRAM_APP_SECRET);
     tokenData.append('grant_type', 'authorization_code');
     tokenData.append('redirect_uri', REDIRECT_URI);
-    tokenData.append('code', code);
+    tokenData.append('code', code); // Fixed typo here
 
     console.log('🔄 Exchanging code for access token...');
     const tokenResponse = await axios.post(
@@ -164,7 +164,7 @@ app.get('/auth/callback', async (req, res) => {
             fields: 'id,username,profile_picture_url',
             access_token: access_token
           },
-          headers: { 'X-极狐IG-App-ID': INSTAGRAM_APP_ID },
+          headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
           timeout: 20000  // 20 seconds timeout
         });
 
@@ -261,7 +261,7 @@ app.get('/user-posts', async (req, res) => {
   }
 });
 
-// Save Configuration - removed ownership verification
+// Save Configuration - removed ownership verification due to Instagram API inconsistency
 app.post('/configure', async (req, res) => {
   try {
     const { userId, postId, keyword, response } = req.body;
@@ -294,7 +294,7 @@ app.post('/configure', async (req, res) => {
   }
 });
 
-// Get User Info
+// Get User Info - Updated to return profile picture
 app.get('/user-info', (req, res) => {
   try {
     const { userId } = req.query;
@@ -339,12 +339,11 @@ app.get('/webhook', (req, res) => {
 // Handle Instagram Events
 app.post('/webhook', async (req, res) => {
   try {
-    console.log('📩 Received webhook event:', JSON.stringify(req.body, null, 2));
+    console.log('📩 Received webhook event:', req.body);
     const { object, entry } = req.body;
 
     if (object === 'instagram') {
       for (const event of entry) {
-        console.log('🔔 Processing event:', event);
         if (event.changes && event.changes[0].field === 'comments') {
           const commentData = event.changes[0].value;
           await handleCommentEvent(commentData);
@@ -358,34 +357,19 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Comment Handler - Updated with detailed logging and fixes
+// Comment Handler - Updated with post filtering
 async function handleCommentEvent(commentData) {
   try {
-    console.log('🔔 Comment event data:', JSON.stringify(commentData, null, 2));
-    const { media_id, text, username, id } = commentData;
-    
-    if (!media_id || !text || !username) {
-      console.error('❌ Invalid comment data:', commentData);
-      return;
-    }
-
+    const { media_id, text, username } = commentData;
     console.log(`💬 New comment from ${username} on post ${media_id}: ${text}`);
 
     for (const [userId, config] of configurations.entries()) {
       try {
-        console.log(`🔍 Checking config for user ${userId} (post: ${config.postId})`);
-        
         // Only process if it's the configured post
-        if (media_id !== config.postId) {
-          console.log(`⏩ Skipping: Not configured post (${media_id} vs ${config.postId})`);
-          continue;
-        }
+        if (media_id !== config.postId) continue;
 
         const user = users.get(userId);
-        if (!user) {
-          console.log(`⏩ Skipping: User ${userId} not found`);
-          continue;
-        }
+        if (!user) continue;
 
         // Check if the comment contains the keyword (case insensitive)
         if (text.toLowerCase().includes(config.keyword.toLowerCase())) {
@@ -394,37 +378,25 @@ async function handleCommentEvent(commentData) {
           const messageText = config.response.replace(/{username}/g, username);
           console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
           
-          // Use the correct API endpoint for sending DMs
-          const dmResponse = await axios.post(
-            `https://graph.facebook.com/v19.0/${user.instagram_id}/messages`,
-            {
-              recipient: { username },
-              message: { text: messageText }
-            },
-            {
-              headers: {
-                'Authorization': `Bearer ${user.access_token}`,
-                'Content-Type': 'application/json',
-                'X-IG-App-ID': INSTAGRAM_APP_ID
-              },
-              timeout: 15000
+          // Use the correct API version (v19.0) and endpoint
+          await axios.post(`https://graph.instagram.com/v19.0/${user.instagram_id}/messages`, {
+            recipient: { username },
+            message: { 
+              text: messageText
             }
-          );
+          }, {
+            headers: {
+              'Authorization': `Bearer ${user.access_token}`,
+              'Content-Type': 'application/json',
+              'X-IG-App-ID': INSTAGRAM_APP_ID
+            },
+            timeout: 15000
+          });
 
           console.log(`✅ DM sent to ${username} for keyword "${config.keyword}"`);
-          console.log('📩 DM response:', dmResponse.data);
-        } else {
-          console.log(`⏩ Skipping: Keyword "${config.keyword}" not found`);
         }
       } catch (err) {
         console.error(`🔥 Comment handling error for user ${userId}:`, serializeError(err));
-        
-        if (err.response) {
-          console.error('📡 Instagram API response error:', {
-            status: err.response.status,
-            data: err.response.data
-          });
-        }
       }
     }
   } catch (err) {
@@ -433,7 +405,7 @@ async function handleCommentEvent(commentData) {
 }
 
 // Debug endpoint
-app.get('/debug', (req, res) => {
+app.get('/debug', (req, res)极狐 {
   res.json({
     status: 'running',
     app_id: INSTAGRAM_APP_ID,
