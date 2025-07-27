@@ -5,31 +5,214 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Workflow Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    .header { display: flex; justify-content: space-between; align-items: center; }
-    .config-form { margin-top: 30px; }
-    input, textarea, button { width: 100%; padding: 10px; margin-bottom: 15px; }
-    button { background-color: #405DE6; color: white; border: none; cursor: pointer; }
+    :root {
+      --primary: #405DE6;
+      --secondary: #833AB4;
+      --light: #F8FAFF;
+      --dark: #262626;
+      --gray: #8E8E8E;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background-color: #f0f2f5;
+      color: var(--dark);
+    }
+    .dashboard {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      min-height: 100vh;
+    }
+    .sidebar {
+      background: linear-gradient(180deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 2rem 1rem;
+    }
+    .brand {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      padding: 0 1rem;
+    }
+    .nav-item {
+      padding: 12px 1rem;
+      border-radius: 8px;
+      margin-bottom: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.3s;
+    }
+    .nav-item:hover, .nav-item.active {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .main-content {
+      padding: 2rem;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .user-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #e0e0e0;
+    }
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 2rem;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2rem;
+    }
+    .card h2 {
+      margin-bottom: 1.5rem;
+      color: var(--primary);
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #555;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border 0.3s;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    .btn {
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .status {
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 1rem;
+      display: none;
+    }
+    .success {
+      background: #e6f7ee;
+      color: #0a8f4e;
+      border: 1px solid #a3e9c0;
+    }
+    .error {
+      background: #fdecea;
+      color: #d93025;
+      border: 1px solid #f5c2c7;
+    }
+    @media (max-width: 768px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        display: none;
+      }
+      .main-content {
+        padding: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>Workflow Dashboard</h1>
-    <div id="user-info"></div>
-  </div>
-  
-  <div class="config-form">
-    <h2>Automation Configuration</h2>
-    <form id="configForm">
-      <label for="keyword">Trigger Keyword:</label>
-      <input type="text" id="keyword" required placeholder="e.g. discount, freebie">
+  <div class="dashboard">
+    <div class="sidebar">
+      <div class="brand">Workflow</div>
+      <div class="nav-item active">
+        <span>📊 Dashboard</span>
+      </div>
+      <div class="nav-item">
+        <span>⚙️ Automation</span>
+      </div>
+      <div class="nav-item">
+        <span>📈 Analytics</span>
+      </div>
+      <div class="nav-item">
+        <span>💬 Templates</span>
+      </div>
+      <div class="nav-item">
+        <span>🔔 Notifications</span>
+      </div>
+      <div class="nav-item">
+        <span>👤 Account</span>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <div class="header">
+        <h1>Automation Dashboard</h1>
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar"></div>
+          <div>
+            <div id="username"></div>
+            <small id="user-id"></small>
+          </div>
+        </div>
+      </div>
       
-      <label for="response">DM Response:</label>
-      <textarea id="response" rows="4" required placeholder="Message to send when keyword is detected"></textarea>
+      <div class="card">
+        <h2>Comment-to-DM Configuration</h2>
+        <form id="configForm">
+          <div class="form-group">
+            <label for="keyword">Trigger Keyword</label>
+            <input type="text" id="keyword" required placeholder="e.g. discount, freebie, promo">
+            <small>When someone comments with this word, they'll receive a DM</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="response">DM Response</label>
+            <textarea id="response" required placeholder="Message to send when keyword is detected. Use {username} to personalize: Hello {username}, thanks for your comment! Here's your special offer..."></textarea>
+            <small>Personalize messages with {username} placeholder</small>
+          </div>
+          
+          <button type="submit" class="btn">Save Configuration</button>
+          <div id="status" class="status"></div>
+        </form>
+      </div>
       
-      <button type="submit">Save Configuration</button>
-    </form>
-    <div id="status"></div>
+      <div class="card">
+        <h2>How It Works</h2>
+        <ol style="padding-left: 1.5rem; line-height: 2;">
+          <li>When someone comments on your post with your keyword, they'll receive a direct message</li>
+          <li>Make sure your Instagram account is set to <strong>Professional Account</strong></li>
+          <li>Test with your personal account before going live</li>
+          <li>Messages will be sent from your Instagram account</li>
+        </ol>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -38,9 +221,26 @@
     const userId = urlParams.get('user_id');
     
     // Display user info
-    document.getElementById('user-info').innerHTML = `
-      <p>Connected as: <strong>${userId}</strong></p>
-    `;
+    if (userId) {
+      document.getElementById('user-id').textContent = `ID: ${userId}`;
+      
+      // Fetch user details from server
+      fetch(`/user-info?userId=${userId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.username) {
+            document.getElementById('username').textContent = data.username;
+          }
+          if (data.profile_pic) {
+            document.getElementById('user-avatar').style.backgroundImage = `url(${data.profile_pic})`;
+          }
+        })
+        .catch(error => {
+          document.getElementById('username').textContent = 'Instagram User';
+        });
+    } else {
+      window.location.href = '/';
+    }
     
     // Handle form submission
     document.getElementById('configForm').addEventListener('submit', async (e) => {
@@ -48,6 +248,7 @@
       
       const keyword = document.getElementById('keyword').value;
       const response = document.getElementById('response').value;
+      const statusEl = document.getElementById('status');
       
       try {
         const result = await fetch('/configure', {
@@ -58,12 +259,19 @@
         
         const data = await result.json();
         if (data.success) {
-          document.getElementById('status').innerHTML = 
-            '<p style="color:green">Configuration saved successfully!</p>';
+          statusEl.textContent = 'Configuration saved successfully!';
+          statusEl.className = 'status success';
+          statusEl.style.display = 'block';
+          
+          // Hide status after 3 seconds
+          setTimeout(() => {
+            statusEl.style.display = 'none';
+          }, 3000);
         }
       } catch (error) {
-        document.getElementById('status').innerHTML = 
-          '<p style="color:red">Error saving configuration</p>';
+        statusEl.textContent = 'Error saving configuration. Please try again.';
+        statusEl.className = 'status error';
+        statusEl.style.display = 'block';
       }
     });
   </script>
