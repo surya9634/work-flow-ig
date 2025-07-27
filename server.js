@@ -28,15 +28,18 @@ app.get('/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Instagram Login (ManyChat style)
+// Instagram Login (Using your provided format)
 app.get('/auth/instagram', (req, res) => {
   const scopes = [
     'instagram_business_basic',
-    'instagram_manage_comments',
-    'instagram_manage_messages'
-  ].join(',');
+    'instagram_business_manage_messages',
+    'instagram_business_manage_comments',
+    'instagram_business_content_publish',
+    'instagram_business_manage_insights'
+  ].join('%2C'); // URL-encoded comma
 
   const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}`;
+  
   res.redirect(authUrl);
 });
 
