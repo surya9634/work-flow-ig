@@ -218,7 +218,7 @@
         <h1>Automation Dashboard</h1>
         <div class="user-info">
           <div class="user-avatar" id="user-avatar">
-            <img id="profile-pic" src="" alt="Profile Picture">
+            <img id="profile-pic" src="" alt="Profile Picture" style="display: none;">
           </div>
           <div>
             <div id="username">Loading...</div>
@@ -286,8 +286,16 @@
           if (data.username) {
             document.getElementById('username').textContent = data.username;
             // Set profile picture
+            const profilePic = document.getElementById('profile-pic');
+            const avatarDiv = document.getElementById('user-avatar');
+            
             if (data.profile_pic) {
-              document.getElementById('profile-pic').src = data.profile_pic;
+              profilePic.src = data.profile_pic;
+              profilePic.style.display = 'block';
+            } else {
+              // Show initial placeholder if no profile pic
+              profilePic.style.display = 'none';
+              avatarDiv.textContent = data.username.charAt(0).toUpperCase();
             }
           }
         })
@@ -328,13 +336,13 @@
               post.caption.substring(0, 30) + (post.caption.length > 30 ? '...' : '') : 
               'Untitled post';
             
+            const imgUrl = post.media_url;
+            
             option.innerHTML = `
               <div class="post-option">
-                <div class="post-thumb">
-                  ${post.media_url ? 
-                    `<img src="${post.media_url}" alt="Post thumbnail">` : 
-                    '📷'}
-                </div>
+                ${imgUrl ? 
+                  `<img src="${imgUrl}" alt="Post thumbnail" class="post-thumb">` : 
+                  '<div class="post-thumb">📷</div>'}
                 <div class="post-info">
                   <div class="post-caption">${caption}</div>
                   <div class="post-id">ID: ${post.id}</div>
