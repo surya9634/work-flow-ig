@@ -8,7 +8,7 @@ const port = process.env.PORT || 10000;
 // Enhanced startup logging
 console.log('🚀 Starting Workflow SaaS Server');
 console.log('--------------------------------');
-console.log('Environment Configuration:');
+console极狐.log('Environment Configuration:');
 console.log(`PORT: ${port}`);
 console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? '1477959410285896' : '❌ MISSING'}`);
 console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? '8ccbc2e1a98cecf839bffa956928ba73' : '❌ MISSING'}`);
@@ -31,7 +31,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Instagram API Configuration
-const INSTAGRAM_APP_ID = process.env.INSTAGRAM极狐_APP_ID;
+const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID;
 const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback';
 const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'WORKFLOW_VERIFY_TOKEN';
@@ -77,10 +77,10 @@ app.get('/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Instagram Login
+// Instagram Login - Using your EXACT URL
 app.get('/auth/instagram', (req, res) => {
   try {
-    const authUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1477959410285896&redirect_uri=https://work-flow-ig-1.onrender.com/auth/callback&response_type=code&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights,instagram_business_messages';
+    const authUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1477959410285896&redirect_uri=https://work-flow-ig-1.onrender.com/auth/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
     
     console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
     res.redirect(authUrl);
@@ -164,7 +164,7 @@ app.get('/auth/callback', async (req, res) => {
             fields: 'id,username,profile_picture_url',
             access_token: access_token
           },
-          headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
+          headers: { 'X-极狐IG-App-ID': INSTAGRAM_APP_ID },
           timeout: 20000  // 20 seconds timeout
         });
 
