@@ -205,17 +205,18 @@ app.get('/auth/callback', async (req, res) => {
     
     usedAuthorizationCodes.add(code);
 
-    const tokenData = new URLSearchParams();
-    tokenData.append('client_id', INSTAGRAM_APP_ID);
-    tokenData.append('client_secret', INSTAGRAM_APP_SECRET);
-    tokenData.append('grant_type', 'authorization_code');
-    tokenData.append('redirect_uri', REDIRECT_URI);
-    tokenData.append('code', code);
+    // FIX: Renamed to tokenExchangeData to avoid redeclaration
+    const tokenExchangeData = new URLSearchParams();
+    tokenExchangeData.append('client_id', INSTAGRAM_APP_ID);
+    tokenExchangeData.append('client_secret', INSTAGRAM_APP_SECRET);
+    tokenExchangeData.append('grant_type', 'authorization_code');
+    tokenExchangeData.append('redirect_uri', REDIRECT_URI);
+    tokenExchangeData.append('code', code);
 
     console.log('🔄 Exchanging code for access token...');
     const tokenResponse = await axios.post(
       'https://api.instagram.com/oauth/access_token',
-      tokenData,
+      tokenExchangeData,
       {
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',
