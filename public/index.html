@@ -23,11 +23,15 @@
       color: var(--dark);
       line-height: 1.6;
       min-height: 100vh;
+      padding: 1rem;
     }
     .container {
       max-width: 1000px;
       margin: 0 auto;
       padding: 2rem;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
     header {
       text-align: center;
@@ -76,9 +80,11 @@
       padding: 2rem;
       box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
       transition: transform 0.3s;
+      border: 1px solid #eee;
     }
     .feature-card:hover {
       transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
     .feature-card h3 {
       color: var(--primary);
@@ -92,6 +98,7 @@
     }
     .feature-card li {
       margin-bottom: 0.8rem;
+      line-height: 1.7;
     }
     footer {
       text-align: center;
@@ -127,7 +134,7 @@
       align-self: center;
     }
     @media (max-width: 768px) {
-      .container { padding: 1rem; }
+      .container { padding: 1.5rem; }
       .logo { font-size: 2.5rem; }
       .error-notification {
         width: 95%;
@@ -181,7 +188,6 @@
       window.location.href = '/auth/instagram';
     }
     
-    // Enhanced error handling
     function showError(message) {
       const container = document.getElementById('errorContainer');
       container.innerHTML = `
@@ -190,20 +196,17 @@
       `;
       container.style.display = 'flex';
       
-      // Auto-dismiss after 10 seconds
       setTimeout(() => {
         container.style.display = 'none';
       }, 10000);
     }
 
-    // Handle auth errors
     document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('error') === 'auth_failed') {
         const errorMessage = urlParams.get('message') || 'Instagram login failed. Please try again.';
         showError(errorMessage);
         
-        // Clear error from URL
         const cleanUrl = window.location.href.split('?')[0];
         window.history.replaceState({}, document.title, cleanUrl);
       }
