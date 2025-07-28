@@ -68,7 +68,8 @@ async function refreshInstagramToken(oldToken) {
       params: {
         grant_type: 'ig_refresh_token',
         access_token: oldToken
-      }
+      },
+      timeout: 10000
     });
 
     if (response.data && response.data.access_token) {
@@ -114,6 +115,31 @@ async function verifyToken(userId) {
   }
 }
 
+// Exchange short-lived token for long-lived token
+async function getLongLivedToken(shortLivedToken) {
+  try {
+    console.log('🔄 Exchanging for long-lived token...');
+    const response = await axios.get('https://graph.instagram.com/access_token', {
+      params: {
+        grant_type: 'ig_exchange_token',
+        client_secret: INSTAGRAM_APP_SECRET,
+        access_token: shortLivedToken
+      },
+      timeout: 10000
+    });
+
+    if (response.data && response.data.access_token) {
+      console.log('✅ Long-lived token obtained');
+      return response.data.access_token;
+    }
+    
+    throw new Error('Invalid long-lived token response');
+  } catch (error) {
+    console.error('🔥 Long-lived token error:', serializeError(error));
+    return null;
+  }
+}
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -124,7 +150,7 @@ app.get('/dashboard.html', (req, res) => {
 
 app.get('/auth/instagram', (req, res) => {
   try {
-    const scope = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments';
+    const scope = 'instagram_basic,instagram_manage_messages,instagram_manage_comments';
     const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=code`;
     
     console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
@@ -185,9 +211,12 @@ app.get('/auth/callback', async (req, res) => {
       throw new Error('Invalid token response: ' + JSON.stringify(tokenResponse.data));
     }
 
-    console.log('✅ Token exchange successful');
-    const access_token = tokenResponse.data.access_token;
+    console.log('✅ Short-lived token obtained');
+    const shortLivedToken = tokenResponse.data.access_token;
     const user_id = String(tokenResponse.data.user_id);
+
+    // Exchange for long-lived token
+    const access_token = await getLongLivedToken(shortLivedToken) || shortLivedToken;
 
     // Get user profile
     console.log(`👤 Fetching user profile...`);
@@ -308,7 +337,7 @@ app.post('/configure', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const user = users.get(userId);
+    const user = users.get(user极狐Id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     configurations.set(userId, { postId, keyword, response });
@@ -400,127 +429,6 @@ app.get('/user-info', (req, res) => {
     console.error('🔥 User info error:', serializeError(err));
     res.status(500).json({ error: 'Server error' });
   }
-});
-
-app.get('/webhook', (req, res) => {
-  try {
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
-
-    console.log('🔔 Webhook verification request:', req.query);
-
-    if (mode === 'subscribe' && token === WEBHOOK_VERIFY_TOKEN) {
-      console.log('✅ Webhook verified successfully');
-      res.status(200).send(challenge);
-    } else {
-      console.error(`❌ Webhook verification failed. Received token: ${token}, Expected: ${WEBHOOK_VERIFY_TOKEN}`);
-      res.sendStatus(403);
-    }
-  } catch (err) {
-    console.error('🔥 Webhook verification error:', serializeError(err));
-    res.sendStatus(500);
-  }
-});
-
-app.post('/webhook', async (req, res) => {
-  try {
-    console.log('📩 Received webhook event:', req.body);
-    const { object, entry } = req.body;
-
-    if (object === 'instagram') {
-      for (const event of entry) {
-        if (event.changes && event.changes[0].field === 'comments') {
-          const commentData = event.changes[0].value;
-          await handleCommentEvent(commentData);
-        }
-      }
-    }
-    res.sendStatus(200);
-  } catch (err) {
-    console.error('🔥 Webhook processing error:', serializeError(err));
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-async function handleCommentEvent(commentData) {
-  try {
-    const { media_id, text, username } = commentData;
-    console.log(`💬 New comment from ${username} on post ${media_id}: ${text}`);
-
-    for (const [userId, config] of configurations.entries()) {
-      try {
-        if (media_id !== config.postId) continue;
-
-        const user = users.get(userId);
-        if (!user) continue;
-
-        // Verify token before sending
-        const tokenValid = await verifyToken(userId);
-        if (!tokenValid) {
-          console.error(`❌ Token invalid for user ${userId}, skipping DM`);
-          continue;
-        }
-
-        if (text.toLowerCase().includes(config.keyword.toLowerCase())) {
-          console.log(`🔑 Keyword match: "${config.keyword}" in comment by ${username}`);
-          
-          const messageText = config.response.replace(/{username}/g, username);
-          console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
-          
-          await axios.post(`https://graph.facebook.com/v19.0/${user.instagram_id}/messages`, {
-            recipient: { username },
-            message: { 
-              text: messageText
-            }
-          }, {
-            headers: {
-              'Authorization': `Bearer ${user.access_token}`,
-              'Content-Type': 'application/json',
-              'X-IG-App-ID': INSTAGRAM_APP_ID
-            },
-            timeout: 15000
-          });
-
-          console.log(`✅ DM sent to ${username} for keyword "${config.keyword}"`);
-        }
-      } catch (err) {
-        console.error(`🔥 Comment handling error for user ${userId}:`, serializeError(err));
-      }
-    }
-  } catch (err) {
-    console.error('🔥 Event processing error:', serializeError(err));
-  }
-}
-
-app.get('/debug', (req, res) => {
-  try {
-    res.json({
-      status: 'running',
-      app_id: INSTAGRAM_APP_ID,
-      redirect_uri: REDIRECT_URI,
-      users_count: users.size,
-      configs_count: configurations.size,
-      environment: process.env.NODE_ENV,
-      server_time: new Date().toISOString()
-    });
-  } catch (err) {
-    console.error('🔥 Debug endpoint error:', serializeError(err));
-    res.status(500).json({ error: 'Debug information unavailable' });
-  }
-});
-
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    version: '1.0.0',
-    uptime: process.uptime()
-  });
-});
-
-app.use((err, req, res, next) => {
-  console.error('🔥 Global error handler:', serializeError(err));
-  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(port, () => {
