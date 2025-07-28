@@ -100,7 +100,6 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      display: none;
     }
     .card {
       background: white;
@@ -169,7 +168,7 @@
     .success {
       background: rgba(46, 204, 113, 0.1);
       color: var(--success);
-      border: 1px solid rgba(46, 204, 113, 0.3);
+      border: 1px solid rgba(46, 极狐204, 113, 0.3);
     }
     .error {
       background: rgba(231, 76, 60, 0.1);
@@ -245,11 +244,17 @@
       text-align: center;
       padding: 20px;
       color: var(--gray);
+      grid-column: 1 / -1;
     }
     .error-message {
       text-align: center;
       padding: 20px;
       color: var(--error);
+      grid-column: 1 / -1;
+    }
+    .initials {
+      font-weight: bold;
+      font-size: 20px;
     }
     @media (max-width: 900px) {
       .dashboard { flex-direction: column; }
@@ -278,7 +283,8 @@
         <h1>Automation Dashboard</h1>
         <div class="user-info">
           <div class="user-avatar" id="user-avatar">
-            <img id="profile-pic" src="" alt="Profile Picture">
+            <img id="profile-pic" src="" alt="Profile Picture" style="display:none;">
+            <div class="initials" id="avatar-initials">U</div>
           </div>
           <div>
             <div id="username" style="font-size: 1.2rem; font-weight: 600;">Loading...</div>
@@ -293,7 +299,7 @@
           <div class="form-group">
             <label>Select Post to Automate</label>
             <div id="postsContainer" class="post-grid">
-              <div class="loading">Loading your posts...</div>
+              <div class="loading">Loading your Instagram posts...</div>
             </div>
             <input type="hidden" id="postId" name="postId" required>
           </div>
@@ -317,7 +323,9 @@
         </div>
         <div id="commentsSection" style="display:none; margin-top:25px;">
           <h3>Comments</h3>
-          <div id="commentsContainer" class="comments-container"></div>
+          <div id="commentsContainer" class="comments-container">
+            <div class="loading">No comments loaded yet. Select a post and click "Load Comments"</div>
+          </div>
           <div class="form-group">
             <label>Message to Send</label>
             <textarea id="manualMessage" placeholder="Enter your message here..."></textarea>
@@ -349,75 +357,99 @@
       // Display user ID
       document.getElementById('user-id').textContent = `ID: ${userId}`;
       
-      // Simulate user data (in a real app, this would come from server)
-      const userData = {
-        username: "instagram_user",
-        profile_pic: "https://randomuser.me/api/portraits/lego/1.jpg"
-      };
+      // Fetch user data from server
+      fetch(`/user-info?userId=${userId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch user info');
+          return response.json();
+        })
+        .then(userData => {
+          if (userData.username) {
+            document.getElementById('username').textContent = userData.username;
+            const profilePic = document.getElementById('profile-pic');
+            const avatarDiv = document.getElementById('user-avatar');
+            const initials = document.getElementById('avatar-initials');
+            
+            if (userData.profile_pic) {
+              profilePic.src = userData.profile_pic;
+              profilePic.style.display = 'block';
+              initials.style.display = 'none';
+            } else {
+              profilePic.style.display = 'none';
+              initials.textContent = userData.username.charAt(0).toUpperCase();
+              initials.style.display = 'block';
+            }
+          }
+        })
+        .catch(error => {
+          console.error('User info fetch error:', error);
+          document.getElementById('username').textContent = 'Instagram User';
+        });
       
-      // Update user info
-      document.getElementById('username').textContent = userData.username;
-      const profilePic = document.getElementById('profile-pic');
-      profilePic.src = userData.profile_pic;
-      profilePic.style.display = 'block';
-      
-      // Load posts
+      // Load user's Instagram posts
       loadUserPosts();
     } else {
       // Redirect to login if no user ID
       console.log("No user ID found, redirecting...");
-      // window.location.href = '/';
+      window.location.href = '/';
     }
     
     // Load user's Instagram posts
     function loadUserPosts() {
       const postsContainer = document.getElementById('postsContainer');
+      postsContainer.innerHTML = '<div class="loading">Loading your Instagram posts...</div>';
       
-      // Simulated posts data
-      const posts = [
-        { id: "post1", caption: "Beautiful sunset at the beach", media_url: "https://picsum.photos/300/300?nature" },
-        { id: "post2", caption: "Delicious food from our restaurant", media_url: "https://picsum.photos/300/300?food" },
-        { id: "post3", caption: "New product launch next week!", media_url: "https://picsum.photos/300/300?tech" },
-        { id: "post4", caption: "Team building event was amazing", media_url: "https://picsum.photos/300/300?people" },
-        { id: "post5", caption: "Special discount for our followers", media_url: "https://picsum.photos/300/300?business" },
-        { id: "post6", caption: "Throwback to last summer", media_url: "https://picsum.photos/300/300?vacation" }
-      ];
-      
-      // Clear loading message
-      postsContainer.innerHTML = '';
-      
-      // Create post cards
-      posts.forEach(post => {
-        const card = document.createElement('div');
-        card.className = 'post-card';
-        card.dataset.id = post.id;
-        
-        const img = document.createElement('img');
-        img.src = post.media_url;
-        img.alt = 'Post thumbnail';
-        
-        const caption = document.createElement('div');
-        caption.className = 'post-card-caption';
-        caption.textContent = post.caption;
-        
-        card.appendChild(img);
-        card.appendChild(caption);
-        
-        card.addEventListener('click', () => {
-          // Remove selected class from all cards
-          document.querySelectorAll('.post-card').forEach(c => {
-            c.classList.remove('selected');
+      fetch(`/user-posts?userId=${userId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch posts');
+          return response.json();
+        })
+        .then(posts => {
+          if (posts.length === 0) {
+            postsContainer.innerHTML = '<div class="error-message">No posts found in your Instagram account</div>';
+            return;
+          }
+          
+          postsContainer.innerHTML = '';
+          
+          posts.forEach(post => {
+            const card = document.createElement('div');
+            card.className = 'post-card';
+            card.dataset.id = post.id;
+            
+            const img = document.createElement('img');
+            img.src = post.media_url || 'https://via.placeholder.com/300?text=Instagram+Post';
+            img.alt = 'Post thumbnail';
+            
+            const caption = document.createElement('div');
+            caption.className = 'post-card-caption';
+            caption.textContent = post.caption ? 
+              post.caption.substring(0, 30) + (post.caption.length > 30 ? '...' : '') : 
+              'Untitled post';
+            
+            card.appendChild(img);
+            card.appendChild(caption);
+            
+            card.addEventListener('click', () => {
+              // Remove selected class from all cards
+              document.querySelectorAll('.post-card').forEach(c => {
+                c.classList.remove('selected');
+              });
+              
+              // Add selected class to clicked card
+              card.classList.add('selected');
+              
+              // Set the hidden input value
+              document.getElementById('postId').value = post.id;
+            });
+            
+            postsContainer.appendChild(card);
           });
-          
-          // Add selected class to clicked card
-          card.classList.add('selected');
-          
-          // Set the hidden input value
-          document.getElementById('postId').value = post.id;
+        })
+        .catch(error => {
+          console.error('Posts fetch error:', error);
+          postsContainer.innerHTML = '<div class="error-message">Failed to load posts from Instagram</div>';
         });
-        
-        postsContainer.appendChild(card);
-      });
     }
     
     // Handle form submission
@@ -437,13 +469,28 @@
       }
       
       try {
-        // Simulate API call to save configuration
         statusEl.textContent = 'Saving configuration...';
         statusEl.className = 'status';
         statusEl.style.display = 'block';
         
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Send configuration to server
+        const result = await fetch('/configure', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            userId, 
+            postId, 
+            keyword, 
+            response 
+          })
+        });
+        
+        if (!result.ok) {
+          const errorData = await result.json();
+          throw new Error(errorData.error || 'Failed to save configuration');
+        }
         
         statusEl.textContent = 'Configuration saved successfully!';
         statusEl.className = 'status success';
@@ -453,7 +500,7 @@
           statusEl.style.display = 'none';
         }, 3000);
       } catch (error) {
-        statusEl.textContent = 'Error saving configuration. Please try again.';
+        statusEl.textContent = error.message || 'Error saving configuration. Please try again.';
         statusEl.className = 'status error';
       }
     });
@@ -475,41 +522,44 @@
       const commentsSection = document.getElementById('commentsSection');
       
       // Show loading state
-      commentsContainer.innerHTML = '<div class="loading">Loading comments...</div>';
+      commentsContainer.innerHTML = '<div class="loading">Loading comments from Instagram...</div>';
       commentsSection.style.display = 'block';
       
-      // Simulate API delay
-      setTimeout(() => {
-        // Simulated comments data
-        const comments = [
-          { username: "user123", text: "This looks amazing! 😍", timestamp: "2023-05-15T10:30:00Z" },
-          { username: "traveler_joe", text: "Where was this taken?", timestamp: "2023-05-15T11:45:00Z" },
-          { username: "foodie_amy", text: "Can I get the recipe?", timestamp: "2023-05-15T12:15:00Z" },
-          { username: "discount_hunter", text: "Is there a discount code?", timestamp: "2023-05-15T13:20:00Z" },
-          { username: "tech_guru", text: "What camera did you use?", timestamp: "2023-05-15T14:05:00Z" },
-          { username: "nature_lover", text: "Beautiful scenery! 🌿", timestamp: "2023-05-15T15:30:00Z" }
-        ];
-        
-        // Clear loading message
-        commentsContainer.innerHTML = '';
-        
-        // Create comment items
-        comments.forEach(comment => {
-          const commentEl = document.createElement('div');
-          commentEl.className = 'comment-item';
+      // Fetch comments from server
+      fetch(`/post-comments?userId=${userId}&postId=${postId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch comments');
+          return response.json();
+        })
+        .then(comments => {
+          if (comments.length === 0) {
+            commentsContainer.innerHTML = '<div class="error-message">No comments found for this post</div>';
+            return;
+          }
           
-          commentEl.innerHTML = `
-            <input type="checkbox" class="user-checkbox" data-username="${comment.username}">
-            <div>
-              <strong>${comment.username}</strong>
-              <div>${comment.text}</div>
-              <small>${new Date(comment.timestamp).toLocaleString()}</small>
-            </div>
-          `;
+          commentsContainer.innerHTML = '';
           
-          commentsContainer.appendChild(commentEl);
+          // Create comment items
+          comments.forEach(comment => {
+            const commentEl = document.createElement('div');
+            commentEl.className = 'comment-item';
+            
+            commentEl.innerHTML = `
+              <input type="checkbox" class="user-checkbox" data-username="${comment.username}">
+              <div>
+                <strong>${comment.username}</strong>
+                <div>${comment.text}</div>
+                <small>${new Date(comment.timestamp).toLocaleString()}</small>
+              </div>
+            `;
+            
+            commentsContainer.appendChild(commentEl);
+          });
+        })
+        .catch(error => {
+          console.error('Comments fetch error:', error);
+          commentsContainer.innerHTML = '<div class="error-message">Failed to load comments from Instagram</div>';
         });
-      }, 1500);
     }
     
     // Send to selected users
@@ -535,8 +585,20 @@
         statusEl.className = 'status';
         statusEl.style.display = 'block';
         
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Send each message
+        for (const username of selectedUsers) {
+          await fetch('/send-manual-message', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+              userId, 
+              username, 
+              message 
+            })
+          });
+        }
         
         statusEl.textContent = `Successfully sent messages to ${selectedUsers.length} users!`;
         statusEl.className = 'status success';
@@ -546,8 +608,8 @@
         document.getElementById('manualMessage').value = '';
         document.getElementById('sendSelectedBtn').disabled = true;
       } catch (error) {
-        statusEl.textContent = 'Error sending messages. Please try again.';
-        status极名El.className = 'status error';
+        statusEl.textContent = `Error sending messages: ${error.message}`;
+        statusEl.className = 'status error';
       }
     });
     
