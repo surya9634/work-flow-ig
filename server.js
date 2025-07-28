@@ -5,7 +5,6 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 10000;
 
-// Enhanced startup logging
 console.log('🚀 Starting Workflow SaaS Server');
 console.log('--------------------------------');
 console.log('Environment Configuration:');
@@ -15,35 +14,28 @@ console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? 'Set' : 
 console.log(`REDIRECT_URI: ${process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback'}`);
 console.log('--------------------------------');
 
-// Validate critical environment variables
 if (!process.env.INSTAGRAM_APP_ID) {
   console.error('❌ Critical Error: INSTAGRAM_APP_ID environment variable is missing!');
   process.exit(1);
 }
 
 if (!process.env.INSTAGRAM_APP_SECRET) {
-  console.error('❌ Critical Error: INSTAGRAM极狐_APP_SECRET environment variable is missing!');
+  console.error('❌ Critical Error: INSTAGRAM_APP_SECRET environment variable is missing!');
   process.exit(1);
 }
 
-// Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Instagram API Configuration
 const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID;
 const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback';
 const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'WORKFLOW_VERIFY_TOKEN';
 
-// In-memory storage
 const users = new Map();
 const configurations = new Map();
-
-// Track used authorization codes to prevent reuse
 const usedAuthorizationCodes = new Set();
 
-// Error serialization function
 function serializeError(err) {
   if (!err) return 'Unknown error';
   
@@ -68,7 +60,6 @@ function serializeError(err) {
   return JSON.stringify(err, null, 2);
 }
 
-// Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -77,10 +68,9 @@ app.get('/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Instagram Login - Using your specified URL
 app.get('/auth/instagram', (req, res) => {
   try {
-    const authUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1477959410285896&redirect_uri=https://work-flow-ig-1.onrender.com/auth/callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2极狐Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
+    const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
     
     console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
     res.redirect(authUrl);
@@ -90,7 +80,6 @@ app.get('/auth/instagram', (req, res) => {
   }
 });
 
-// Instagram Callback with retry mechanism and code reuse prevention
 app.get('/auth/callback', async (req, res) => {
   try {
     console.log('📬 Received Instagram callback:', req.query);
@@ -104,10 +93,8 @@ app.get('/auth/callback', async (req, res) => {
       throw new Error('Authorization code is missing');
     }
 
-    // Prevent authorization code reuse
     if (usedAuthorizationCodes.has(code)) {
       console.warn('⚠️ Authorization code reuse detected:', code);
-      // Instead of throwing error, redirect to dashboard if user exists
       for (const [userId, userData] of users.entries()) {
         if (userData.code === code) {
           console.log(`↩️ Redirecting reused code to existing user: ${userId}`);
@@ -117,10 +104,8 @@ app.get('/auth/callback', async (req, res) => {
       throw new Error('Authorization code has already been used');
     }
     
-    // Mark code as used immediately
     usedAuthorizationCodes.add(code);
 
-    // Exchange code for access token
     const tokenData = new URLSearchParams();
     tokenData.append('client_id', INSTAGRAM_APP_ID);
     tokenData.append('client_secret', INSTAGRAM_APP_SECRET);
@@ -135,7 +120,7 @@ app.get('/auth/callback', async (req, res) => {
       {
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',
-          'X-IG-App-ID': INSTAGRAM_APP_ID  // Fixed header name
+          'X-IG-App-ID': INSTAGRAM_APP_ID
         },
         timeout: 15000
       }
@@ -149,7 +134,6 @@ app.get('/auth/callback', async (req, res) => {
     const access_token = tokenResponse.data.access_token;
     const user_id = String(tokenResponse.data.user_id);
 
-    // Get user profile with retry mechanism
     let profileResponse;
     let retryCount = 0;
     const maxRetries = 3;
@@ -187,7 +171,6 @@ app.get('/auth/callback', async (req, res) => {
 
     console.log(`👋 User authenticated: ${profileResponse.data.username} (ID: ${user_id})`);
     
-    // Store user data
     const userData = {
       access_token,
       username: profileResponse.data.username,
@@ -225,7 +208,6 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-// Get User Posts
 app.get('/user-posts', async (req, res) => {
   try {
     const { userId } = req.query;
@@ -242,7 +224,6 @@ app.get('/user-posts', async (req, res) => {
       headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID }
     });
 
-    // Process posts to handle videos (use thumbnail for videos)
     const processedPosts = response.data.data.map(post => {
       return {
         id: post.id,
@@ -259,7 +240,6 @@ app.get('/user-posts', async (req, res) => {
   }
 });
 
-// Get Comments for a Specific Post
 app.get('/post-comments', async (req, res) => {
   try {
     const { userId, postId } = req.query;
@@ -285,7 +265,6 @@ app.get('/post-comments', async (req, res) => {
   }
 });
 
-// Save Configuration
 app.post('/configure', async (req, res) => {
   try {
     const { userId, postId, keyword, response } = req.body;
@@ -317,7 +296,6 @@ app.post('/configure', async (req, res) => {
   }
 });
 
-// Send Manual Message
 app.post('/send-manual-message', async (req, res) => {
   try {
     const { userId, username, message } = req.body;
@@ -350,7 +328,6 @@ app.post('/send-manual-message', async (req, res) => {
   }
 });
 
-// Get User Info
 app.get('/user-info', (req, res) => {
   try {
     const { userId } = req.query;
@@ -370,7 +347,6 @@ app.get('/user-info', (req, res) => {
   }
 });
 
-// Webhook Setup
 app.get('/webhook', (req, res) => {
   try {
     const mode = req.query['hub.mode'];
@@ -392,7 +368,6 @@ app.get('/webhook', (req, res) => {
   }
 });
 
-// Handle Instagram Events
 app.post('/webhook', async (req, res) => {
   try {
     console.log('📩 Received webhook event:', req.body);
@@ -413,7 +388,6 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Comment Handler - Updated with post filtering
 async function handleCommentEvent(commentData) {
   try {
     const { media_id, text, username } = commentData;
@@ -421,20 +395,17 @@ async function handleCommentEvent(commentData) {
 
     for (const [userId, config] of configurations.entries()) {
       try {
-        // Only process if it's the configured post
         if (media_id !== config.postId) continue;
 
         const user = users.get(userId);
         if (!user) continue;
 
-        // Check if the comment contains the keyword (case insensitive)
         if (text.toLowerCase().includes(config.keyword.toLowerCase())) {
           console.log(`🔑 Keyword match: "${config.keyword}" in comment by ${username}`);
           
           const messageText = config.response.replace(/{username}/g, username);
           console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
           
-          // Use the correct API endpoint for sending DMs
           await axios.post(`https://graph.facebook.com/v19.0/${user.instagram_id}/messages`, {
             recipient: { username },
             message: { 
@@ -460,7 +431,6 @@ async function handleCommentEvent(commentData) {
   }
 }
 
-// Debug endpoint with error handling
 app.get('/debug', (req, res) => {
   try {
     res.json({
@@ -478,7 +448,6 @@ app.get('/debug', (req, res) => {
   }
 });
 
-// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok',
@@ -487,13 +456,11 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Global error handler
 app.use((err, req, res, next) => {
   console.error('🔥 Global error handler:', serializeError(err));
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
 app.listen(port, () => {
   console.log('--------------------------------');
   console.log(`🚀 Server running on port ${port}`);
