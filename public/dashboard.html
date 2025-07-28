@@ -6,21 +6,23 @@
   <title>Workflow Dashboard</title>
   <style>
     :root {
-      --primary: #405DE6;
-      --secondary: #833AB4;
-      --light: #F8FAFF;
-      --dark: #262626;
-      --gray: #8E8E8E;
-      --error-bg: #ffebee;
-      --error-text: #b71c1c;
-      --success-bg: #e6f7ee;
-      --success-text: #0a8f4e;
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #7209b7;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --light-gray: #e9ecef;
+      --success: #2ecc71;
+      --error: #e74c3c;
+      --card-shadow: 0 10px 20px rgba(0,0,0,0.05);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-      background-color: #f0f2f5;
+      background-color: #f8f9fa;
       color: var(--dark);
+      line-height: 1.6;
     }
     .dashboard {
       display: grid;
@@ -34,28 +36,33 @@
       position: fixed;
       width: 250px;
       height: 100vh;
+      box-shadow: 3px 0 15px rgba(0,0,0,0.1);
     }
     .brand {
-      font-size: 1.5rem;
+      font-size: 1.8rem;
       font-weight: 700;
-      margin-bottom: 2rem;
+      margin-bottom: 3rem;
       padding: 0 1rem;
+      text-align: center;
+      letter-spacing: 1px;
     }
     .nav-item {
-      padding: 12px 1rem;
+      padding: 12px 1.5rem;
       border-radius: 8px;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 10px;
-      transition: background 0.3s;
+      gap: 12px;
+      transition: all 0.3s;
+      font-weight: 500;
     }
     .nav-item:hover, .nav-item.active {
       background: rgba(255, 255, 255, 0.15);
+      transform: translateX(5px);
     }
     .main-content {
-      padding: 2rem;
+      padding: 2.5rem;
       margin-left: 250px;
       width: calc(100% - 250px);
     }
@@ -63,7 +70,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 2rem;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--light-gray);
     }
     .user-info {
       display: flex;
@@ -71,17 +80,18 @@
       gap: 15px;
     }
     .user-avatar {
-      width: 50px;
-      height: 50px;
+      width: 55px;
+      height: 55px;
       border-radius: 50%;
-      background: #e0e0e0;
+      background: linear-gradient(45deg, var(--primary), var(--accent));
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      font-size: 18px;
-      color: #405DE6;
+      font-size: 22px;
+      color: white;
       overflow: hidden;
+      box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
     }
     .user-avatar img {
       width: 100%;
@@ -90,153 +100,193 @@
     }
     .card {
       background: white;
-      border-radius: 15px;
-      padding: 2rem;
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-      margin-bottom: 2rem;
+      border-radius: 16px;
+      padding: 2.5rem;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 2.5rem;
+      border: 1px solid #eee;
+      transition: transform 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.1);
     }
     .card h2 {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.8rem;
       color: var(--primary);
-      padding-bottom: 10px;
-      border-bottom: 1px solid #eee;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--light-gray);
+      font-weight: 600;
+      font-size: 1.8rem;
     }
     .form-group {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.8rem;
     }
     label {
       display: block;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.7rem;
       font-weight: 600;
-      color: #555;
+      color: var(--dark);
+      font-size: 1.05rem;
     }
     input, textarea, select {
       width: 100%;
-      padding: 12px 15px;
+      padding: 14px 18px;
       border: 1px solid #ddd;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 1rem;
-      transition: border 0.3s;
-      background: #f9f9f9;
+      transition: all 0.3s;
+      background: #f8f9fa;
+      font-family: inherit;
     }
     input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--primary);
       background: #fff;
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
     }
     textarea {
-      min-height: 120px;
+      min-height: 130px;
       resize: vertical;
+      line-height: 1.6;
     }
     .btn {
-      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      background: linear-gradient(45deg, var(--primary), var(--accent));
       color: white;
-      padding: 12px 30px;
+      padding: 14px 35px;
       border: none;
-      border-radius: 8px;
-      font-size: 1rem;
+      border-radius: 12px;
+      font-size: 1.05rem;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.3s;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
     .btn:hover {
-      transform: translateY(-2px);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
     }
     .status {
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 1rem;
+      padding: 16px;
+      border-radius: 10px;
+      margin-top: 1.2rem;
       display: none;
+      font-weight: 500;
     }
     .success {
-      background: var(--success-bg);
-      color: var(--success-text);
-      border: 1px solid #a3e9c0;
+      background: rgba(46, 204, 113, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(46, 204, 113, 0.3);
     }
     .error {
-      background: var(--error-bg);
-      color: var(--error-text);
-      border: 1px solid #f5c2c7;
-    }
-    .post-option {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 0;
-    }
-    .post-thumb {
-      width: 50px;
-      height: 50px;
-      border-radius: 5px;
-      object-fit: cover;
-      background: #f0f0f0;
-    }
-    .post-info {
-      flex: 1;
-      overflow: hidden;
-    }
-    .post-caption {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 0.9rem;
-    }
-    .post-id {
-      font-size: 0.8rem;
-      color: #777;
-    }
-    .comments-container {
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid #eee;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
-    .comment-item {
-      padding: 10px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      align-items: center;
-      transition: background-color 0.2s;
-    }
-    .comment-item:hover {
-      background-color: #f5f5f5;
+      background: rgba(231, 76, 60, 0.1);
+      color: var(--error);
+      border: 1px solid rgba(231, 76, 60, 0.3);
     }
     .post-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 15px;
-      margin-top: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      margin-top: 15px;
     }
     .post-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
       overflow: hidden;
       cursor: pointer;
       transition: all 0.3s;
+      background: white;
+      position: relative;
     }
     .post-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      border-color: var(--primary);
     }
     .post-card.selected {
-      border-color: #405DE6;
-      box-shadow: 0 0 0 2px #405DE6;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
     }
     .post-card img {
       width: 100%;
       aspect-ratio: 1/1;
       object-fit: cover;
+      display: block;
     }
     .post-card-caption {
-      padding: 10px;
-      font-size: 0.8rem;
+      padding: 12px;
+      font-size: 0.85rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      background: #f8f9fa;
     }
-    @media (max-width: 768px) {
+    .comments-container {
+      max-height: 350px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      background: #f8f9fa;
+    }
+    .comment-item {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: flex-start;
+      transition: background-color 0.2s;
+      background: white;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .comment-item:hover {
+      background-color: #f0f7ff;
+    }
+    .comment-item:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+    .comment-info {
+      flex: 1;
+    }
+    .comment-item strong {
+      color: var(--primary);
+      font-size: 1.05rem;
+    }
+    .comment-item small {
+      color: var(--gray);
+      display: block;
+      margin-top: 5px;
+    }
+    .user-checkbox {
+      margin-right: 15px;
+      margin-top: 5px;
+      transform: scale(1.3);
+    }
+    .section-title {
+      font-size: 1.3rem;
+      color: var(--dark);
+      margin: 1.5rem 0 1rem;
+      font-weight: 600;
+    }
+    ol.steps {
+      padding-left: 1.8rem;
+      line-height: 1.8;
+    }
+    ol.steps li {
+      margin-bottom: 1.2rem;
+      padding-left: 10px;
+    }
+    ol.steps li::marker {
+      color: var(--primary);
+      font-weight: bold;
+    }
+    @media (max-width: 900px) {
       .dashboard {
         grid-template-columns: 1fr;
       }
@@ -244,11 +294,29 @@
         position: relative;
         width: 100%;
         height: auto;
+        padding: 1.5rem;
       }
       .main-content {
         margin-left: 0;
         width: 100%;
-        padding: 1rem;
+        padding: 1.8rem;
+      }
+      .brand {
+        margin-bottom: 1.5rem;
+      }
+      .post-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      }
+    }
+    @media (max-width: 600px) {
+      .main-content {
+        padding: 1.5rem 1rem;
+      }
+      .card {
+        padding: 1.8rem 1.5rem;
+      }
+      .post-grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
       }
     }
   </style>
@@ -285,10 +353,10 @@
             <img id="profile-pic" src="" alt="Profile Picture" style="display: none;">
           </div>
           <div>
-            <div id="username">Loading...</div>
-            <small id="user-id"></small>
+            <div id="username" style="font-size: 1.2rem; font-weight: 600;">Loading...</div>
+            <small id="user-id" style="color: var(--gray);"></small>
           </div>
-        </极狐div>
+        </div>
       </div>
       
       <div class="card">
@@ -305,16 +373,16 @@
           <div class="form-group">
             <label for="keyword">Trigger Keyword</label>
             <input type="text" id="keyword" required placeholder="e.g. discount, freebie, promo">
-            <small>When someone comments with this word, they'll receive a DM</small>
+            <small style="display: block; margin-top: 8px; color: var(--gray);">When someone comments with this word, they'll receive a DM</small>
           </div>
           
           <div class="form-group">
             <label for="response">DM Response</label>
             <textarea id="response" required placeholder="Message to send when keyword is detected. Use {username} to personalize: Hello {username}, thanks for your comment! Here's your special offer..."></textarea>
-            <small>Personalize messages with {username} placeholder</small>
+            <small style="display: block; margin-top: 8px; color: var(--gray);">Personalize messages with {username} placeholder</small>
           </div>
           
-          <button type="submit" class="btn">Save Configuration</button>
+          <button type="submit" class="btn">💾 Save Configuration</button>
           <div id="status" class="status"></div>
         </form>
       </div>
@@ -323,11 +391,11 @@
         <h2>Manage Comments & Send Messages</h2>
         <div class="form-group">
           <label for="viewCommentsBtn">View Comments for Selected Post</label>
-          <button id="viewCommentsBtn" class="btn" style="width: auto">Load Comments</button>
+          <button id="viewCommentsBtn" class="btn" style="width: auto">🔍 Load Comments</button>
         </div>
         
-        <div id="commentsSection" style="display: none; margin-top: 20px;">
-          <h3>Comments</h3>
+        <div id="commentsSection" style="display: none; margin-top: 25px;">
+          <h3 class="section-title">Comments</h3>
           <div id="commentsContainer" class="comments-container"></div>
           
           <div class="form-group">
@@ -335,14 +403,14 @@
             <textarea id="manualMessage" placeholder="Enter your message here..."></textarea>
           </div>
           
-          <button id="sendSelectedBtn" class="btn" disabled>Send to Selected Users</button>
+          <button id="sendSelectedBtn" class="btn" disabled>✉️ Send to Selected Users</button>
           <div id="manualMessageStatus" class="status"></div>
         </div>
       </div>
       
       <div class="card">
         <h2>How It Works</h2>
-        <ol style="padding-left: 1.5rem; line-height: 2;">
+        <ol class="steps">
           <li>Select a post you want to monitor for comments</li>
           <li>Set a keyword that will trigger automated DMs</li>
           <li>When someone comments with your keyword, they'll receive a direct message</li>
@@ -355,14 +423,12 @@
   </div>
 
   <script>
-    // Get user ID from URL
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('user_id');
     
     if (userId) {
       document.getElementById('user-id').textContent = `ID: ${userId}`;
       
-      // Fetch user details from server
       fetch(`/user-info?userId=${userId}`)
         .then(response => {
           if (!response.ok) throw new Error('Failed to fetch user info');
@@ -371,7 +437,6 @@
         .then(data => {
           if (data.username) {
             document.getElementById('username').textContent = data.username;
-            // Set profile picture
             const profilePic = document.getElementById('profile-pic');
             const avatarDiv = document.getElementById('user-avatar');
             
@@ -379,7 +444,6 @@
               profilePic.src = data.profile_pic;
               profilePic.style.display = 'block';
             } else {
-              // Show initial placeholder if no profile pic
               profilePic.style.display = 'none';
               avatarDiv.textContent = data.username.charAt(0).toUpperCase();
             }
@@ -390,16 +454,14 @@
           document.getElementById('username').textContent = 'Instagram User';
         });
       
-      // Load user's posts
       loadUserPosts();
     } else {
       window.location.href = '/';
     }
     
-    // Load user's Instagram posts as cards
     function loadUserPosts() {
       const postsContainer = document.getElementById('postsContainer');
-      postsContainer.innerHTML = '<p>Loading your posts...</p>';
+      postsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Loading your posts...</p>';
       
       fetch(`/user-posts?userId=${userId}`)
         .then(response => {
@@ -408,7 +470,7 @@
         })
         .then(posts => {
           if (posts.length === 0) {
-            postsContainer.innerHTML = '<p>No posts found</p>';
+            postsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">No posts found</p>';
             return;
           }
           
@@ -420,7 +482,7 @@
             card.dataset.id = post.id;
             
             const img = document.createElement('img');
-            img.src = post.media_url || 'https://via.placeholder.com/150';
+            img.src = post.media_url || 'https://via.placeholder.com/300?text=Instagram+Post';
             img.alt = 'Post thumbnail';
             
             const caption = document.createElement('div');
@@ -433,11 +495,8 @@
             card.appendChild(caption);
             
             card.addEventListener('click', () => {
-              // Remove selected class from all cards
               document.querySelectorAll('.post-card').forEach(c => c.classList.remove('selected'));
-              // Add selected class to clicked card
               card.classList.add('selected');
-              // Set the hidden input value
               document.getElementById('postId').value = post.id;
             });
             
@@ -446,11 +505,10 @@
         })
         .catch(error => {
           console.error('Posts fetch error:', error);
-          postsContainer.innerHTML = '<p>Failed to load posts</p>';
+          postsContainer.innerHTML = '<p style="padding: 20px; text-align: center; color: var(--error);">Failed to load posts</p>';
         });
     }
     
-    // Handle form submission
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -484,7 +542,6 @@
           statusEl.className = 'status success';
           statusEl.style.display = 'block';
           
-          // Hide status after 3 seconds
           setTimeout(() => {
             statusEl.style.display = 'none';
           }, 3000);
@@ -496,7 +553,6 @@
       }
     });
     
-    // View Comments Button Handler
     document.getElementById('viewCommentsBtn').addEventListener('click', () => {
       const postId = document.getElementById('postId').value;
       if (!postId) {
@@ -507,10 +563,9 @@
       loadPostComments(postId);
     });
 
-    // Load comments for a post
     function loadPostComments(postId) {
       const commentsContainer = document.getElementById('commentsContainer');
-      commentsContainer.innerHTML = '<p>Loading comments...</p>';
+      commentsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Loading comments...</p>';
       document.getElementById('commentsSection').style.display = 'block';
       
       fetch(`/post-comments?userId=${userId}&postId=${postId}`)
@@ -520,7 +575,7 @@
         })
         .then(comments => {
           if (comments.length === 0) {
-            commentsContainer.innerHTML = '<p>No comments found for this post</p>';
+            commentsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">No comments found for this post</p>';
             return;
           }
           
@@ -533,7 +588,7 @@
             commentEl.innerHTML = `
               <input type="checkbox" class="user-checkbox" data-username="${comment.username}" 
                      style="margin-right: 10px;">
-              <div>
+              <div class="comment-info">
                 <strong>${comment.username}</strong>
                 <div>${comment.text}</div>
                 <small>${new Date(comment.timestamp).toLocaleString()}</small>
@@ -545,11 +600,10 @@
         })
         .catch(error => {
           console.error('Comments fetch error:', error);
-          commentsContainer.innerHTML = `<p style="color: red;">Error loading comments: ${error.message}</p>`;
+          commentsContainer.innerHTML = `<p style="padding: 20px; text-align: center; color: var(--error);">Error loading comments: ${error.message}</p>`;
         });
     }
 
-    // Send to selected users
     document.getElementById('sendSelectedBtn').addEventListener('click', async () => {
       const message = document.getElementById('manualMessage').value;
       if (!message) {
@@ -582,7 +636,6 @@
         statusEl.textContent = `Successfully sent messages to ${selectedUsers.length} users!`;
         statusEl.className = 'status success';
         
-        // Clear selection and message
         document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
         document.getElementById('manualMessage').value = '';
         document.getElementById('sendSelectedBtn').disabled = true;
@@ -592,7 +645,6 @@
       }
     });
 
-    // Enable send button when users are selected
     document.addEventListener('change', (e) => {
       if (e.target.classList.contains('user-checkbox')) {
         const selectedCount = document.querySelectorAll('.user-checkbox:checked').length;
