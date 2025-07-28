@@ -60,6 +60,60 @@ function serializeError(err) {
   return JSON.stringify(err, null, 2);
 }
 
+// Instagram Token Refresh Function
+async function refreshInstagramToken(oldToken) {
+  try {
+    console.log('🔄 Attempting to refresh Instagram access token...');
+    const response = await axios.get('https://graph.instagram.com/refresh_access_token', {
+      params: {
+        grant_type: 'ig_refresh_token',
+        access_token: oldToken
+      }
+    });
+
+    if (response.data && response.data.access_token) {
+      console.log('✅ Token refresh successful');
+      return response.data.access_token;
+    }
+    
+    throw new Error('Invalid token refresh response');
+  } catch (error) {
+    console.error('🔥 Token refresh error:', serializeError(error));
+    return null;
+  }
+}
+
+// Verify token validity before API calls
+async function verifyToken(userId) {
+  const user = users.get(userId);
+  if (!user) return false;
+
+  try {
+    // Simple validation by fetching user profile
+    await axios.get(`https://graph.instagram.com/me`, {
+      params: { 
+        fields: 'id,username',
+        access_token: user.access_token
+      },
+      headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
+      timeout: 5000
+    });
+    
+    return true;
+  } catch (error) {
+    if (error.response && error.response.status === 400) {
+      console.log('⚠️ Token appears invalid, attempting refresh...');
+      const newToken = await refreshInstagramToken(user.access_token);
+      if (newToken) {
+        user.access_token = newToken;
+        users.set(userId, user);
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -70,7 +124,8 @@ app.get('/dashboard.html', (req, res) => {
 
 app.get('/auth/instagram', (req, res) => {
   try {
-    const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
+    const scope = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments';
+    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=code`;
     
     console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
     res.redirect(authUrl);
@@ -134,43 +189,24 @@ app.get('/auth/callback', async (req, res) => {
     const access_token = tokenResponse.data.access_token;
     const user_id = String(tokenResponse.data.user_id);
 
-    let profileResponse;
-    let retryCount = 0;
-    const maxRetries = 3;
-    const retryDelays = [2000, 4000, 8000];
-    
-    while (retryCount <= maxRetries) {
-      try {
-        console.log(`👤 Fetching user profile (attempt ${retryCount + 1} of ${maxRetries + 1})...`);
-        profileResponse = await axios.get(`https://graph.instagram.com/me`, {
-          params: { 
-            fields: 'id,username,profile_picture_url',
-            access_token: access_token
-          },
-          headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
-          timeout: 20000
-        });
+    // Get user profile
+    console.log(`👤 Fetching user profile...`);
+    const profileResponse = await axios.get(`https://graph.instagram.com/me`, {
+      params: { 
+        fields: 'id,username,profile_picture_url',
+        access_token: access_token
+      },
+      headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
+      timeout: 20000
+    });
 
-        if (!profileResponse.data || !profileResponse.data.username) {
-          throw new Error('Invalid profile response: ' + JSON.stringify(profileResponse.data));
-        }
-        
-        break;
-      } catch (err) {
-        if (retryCount >= maxRetries) {
-          console.error(`🔥 Failed after ${maxRetries + 1} attempts`);
-          throw err;
-        }
-        
-        const delay = retryDelays[retryCount];
-        console.log(`⚠️ Profile fetch failed, retrying in ${delay/1000}s...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        retryCount++;
-      }
+    if (!profileResponse.data || !profileResponse.data.username) {
+      throw new Error('Invalid profile response: ' + JSON.stringify(profileResponse.data));
     }
 
     console.log(`👋 User authenticated: ${profileResponse.data.username} (ID: ${user_id})`);
     
+    // Store user data
     const userData = {
       access_token,
       username: profileResponse.data.username,
@@ -296,6 +332,7 @@ app.post('/configure', async (req, res) => {
   }
 });
 
+// Updated Send Manual Message with Token Verification
 app.post('/send-manual-message', async (req, res) => {
   try {
     const { userId, username, message } = req.body;
@@ -308,6 +345,12 @@ app.post('/send-manual-message', async (req, res) => {
 
     console.log(`✉️ Sending manual DM to ${username}: ${message.substring(0, 50)}...`);
     
+    // Verify token before sending
+    const tokenValid = await verifyToken(userId);
+    if (!tokenValid) {
+      return res.status(401).json({ error: 'Instagram token is invalid or expired' });
+    }
+
     await axios.post(`https://graph.facebook.com/v19.0/${user.instagram_id}/messages`, {
       recipient: { username },
       message: { text: message }
@@ -324,7 +367,19 @@ app.post('/send-manual-message', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('🔥 Manual message error:', serializeError(err));
-    res.status(500).json({ error: 'Error sending message' });
+    
+    let errorMessage = 'Error sending message';
+    if (err.response) {
+      if (err.response.status === 400) {
+        errorMessage = 'Invalid request to Instagram API';
+      } else if (err.response.status === 401) {
+        errorMessage = 'Instagram token is invalid or expired';
+      } else if (err.response.status === 403) {
+        errorMessage = 'Permission denied by Instagram';
+      }
+    }
+    
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -399,6 +454,13 @@ async function handleCommentEvent(commentData) {
 
         const user = users.get(userId);
         if (!user) continue;
+
+        // Verify token before sending
+        const tokenValid = await verifyToken(userId);
+        if (!tokenValid) {
+          console.error(`❌ Token invalid for user ${userId}, skipping DM`);
+          continue;
+        }
 
         if (text.toLowerCase().includes(config.keyword.toLowerCase())) {
           console.log(`🔑 Keyword match: "${config.keyword}" in comment by ${username}`);
