@@ -168,7 +168,7 @@
     .success {
       background: rgba(46, 204, 113, 0.1);
       color: var(--success);
-      border: 1px solid rgba(46, 极狐204, 113, 0.3);
+      border: 1px solid rgba(46, 204, 113, 0.3);
     }
     .error {
       background: rgba(231, 76, 60, 0.1);
@@ -183,7 +183,7 @@
     }
     .post-card {
       border: 1px solid #ddd;
-      border-radius: 10px;
+      border-radius: 10极狐px;
       overflow: hidden;
       background: white;
       transition: all 0.3s;
@@ -349,15 +349,12 @@
   </div>
 
   <script>
-    // Get user ID from URL
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('user_id');
     
     if (userId) {
-      // Display user ID
       document.getElementById('user-id').textContent = `ID: ${userId}`;
       
-      // Fetch user data from server
       fetch(`/user-info?userId=${userId}`)
         .then(response => {
           if (!response.ok) throw new Error('Failed to fetch user info');
@@ -386,15 +383,11 @@
           document.getElementById('username').textContent = 'Instagram User';
         });
       
-      // Load user's Instagram posts
       loadUserPosts();
     } else {
-      // Redirect to login if no user ID
-      console.log("No user ID found, redirecting...");
       window.location.href = '/';
     }
     
-    // Load user's Instagram posts
     function loadUserPosts() {
       const postsContainer = document.getElementById('postsContainer');
       postsContainer.innerHTML = '<div class="loading">Loading your Instagram posts...</div>';
@@ -431,15 +424,10 @@
             card.appendChild(caption);
             
             card.addEventListener('click', () => {
-              // Remove selected class from all cards
               document.querySelectorAll('.post-card').forEach(c => {
                 c.classList.remove('selected');
               });
-              
-              // Add selected class to clicked card
               card.classList.add('selected');
-              
-              // Set the hidden input value
               document.getElementById('postId').value = post.id;
             });
             
@@ -452,7 +440,6 @@
         });
     }
     
-    // Handle form submission
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -473,7 +460,6 @@
         statusEl.className = 'status';
         statusEl.style.display = 'block';
         
-        // Send configuration to server
         const result = await fetch('/configure', {
           method: 'POST',
           headers: { 
@@ -495,7 +481,6 @@
         statusEl.textContent = 'Configuration saved successfully!';
         statusEl.className = 'status success';
         
-        // Hide status after 3 seconds
         setTimeout(() => {
           statusEl.style.display = 'none';
         }, 3000);
@@ -505,7 +490,6 @@
       }
     });
     
-    // View Comments Button Handler
     document.getElementById('viewCommentsBtn').addEventListener('click', () => {
       const postId = document.getElementById('postId').value;
       if (!postId) {
@@ -516,16 +500,13 @@
       loadPostComments(postId);
     });
     
-    // Load comments for a post
     function loadPostComments(postId) {
       const commentsContainer = document.getElementById('commentsContainer');
       const commentsSection = document.getElementById('commentsSection');
       
-      // Show loading state
       commentsContainer.innerHTML = '<div class="loading">Loading comments from Instagram...</div>';
       commentsSection.style.display = 'block';
       
-      // Fetch comments from server
       fetch(`/post-comments?userId=${userId}&postId=${postId}`)
         .then(response => {
           if (!response.ok) throw new Error('Failed to fetch comments');
@@ -539,7 +520,6 @@
           
           commentsContainer.innerHTML = '';
           
-          // Create comment items
           comments.forEach(comment => {
             const commentEl = document.createElement('div');
             commentEl.className = 'comment-item';
@@ -561,8 +541,7 @@
           commentsContainer.innerHTML = '<div class="error-message">Failed to load comments from Instagram</div>';
         });
     }
-    
-    // Send to selected users
+
     document.getElementById('sendSelectedBtn').addEventListener('click', async () => {
       const message = document.getElementById('manualMessage').value;
       const statusEl = document.getElementById('manualMessageStatus');
@@ -585,9 +564,8 @@
         statusEl.className = 'status';
         statusEl.style.display = 'block';
         
-        // Send each message
         for (const username of selectedUsers) {
-          await fetch('/send-manual-message', {
+          const response = await fetch('/send-manual-message', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json'
@@ -598,22 +576,25 @@
               message 
             })
           });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to send message');
+          }
         }
         
         statusEl.textContent = `Successfully sent messages to ${selectedUsers.length} users!`;
         statusEl.className = 'status success';
         
-        // Clear selection and message
         document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
         document.getElementById('manualMessage').value = '';
         document.getElementById('sendSelectedBtn').disabled = true;
       } catch (error) {
-        statusEl.textContent = `Error sending messages: ${error.message}`;
+        statusEl.textContent = `Error: ${error.message}`;
         statusEl.className = 'status error';
       }
     });
     
-    // Enable send button when users are selected
     document.addEventListener('change', (e) => {
       if (e.target.classList.contains('user-checkbox')) {
         const selectedCount = document.querySelectorAll('.user-checkbox:checked').length;
