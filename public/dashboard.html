@@ -13,25 +13,27 @@
       --accent-light: #f72585;
       --light: #f8f9fa;
       --dark: #212529;
+      --darker: #14171a;
       --gray: #6c757d;
       --light-gray: #e9ecef;
       --success: #2ecc71;
       --error: #e74c3c;
       --warning: #f39c12;
-      --card-shadow: 0 10px 20px rgba(0,0,0,0.05);
+      --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
       --sidebar-width: 280px;
+      --transition: all 0.3s ease;
     }
     
     * { 
       box-sizing: border-box; 
       margin: 0; 
       padding: 0; 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
     body { 
-      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
-      color: var(--dark);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e2e8f0;
       line-height: 1.6;
       min-height: 100vh;
       padding-bottom: 2rem;
@@ -45,8 +47,8 @@
     
     /* Sidebar Styles */
     .sidebar {
-      background: linear-gradient(180deg, var(--primary), var(--primary-dark));
-      color: white;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+      color: #cbd5e1;
       padding: 2rem 1.5rem;
       position: fixed;
       width: var(--sidebar-width);
@@ -55,6 +57,7 @@
       display: flex;
       flex-direction: column;
       z-index: 100;
+      border-right: 1px solid #334155;
     }
     
     .brand {
@@ -65,17 +68,18 @@
       font-weight: 700;
       margin-bottom: 3rem;
       padding: 0 0.5rem;
+      color: white;
     }
     
     .brand-icon {
-      background: white;
+      background: var(--primary);
       width: 42px;
       height: 42px;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--primary);
+      color: white;
       font-size: 1.5rem;
     }
     
@@ -87,20 +91,21 @@
       display: flex;
       align-items: center;
       gap: 15px;
-      transition: all 0.3s;
+      transition: var(--transition);
       font-weight: 500;
       font-size: 1.1rem;
     }
     
     .nav-item:hover, .nav-item.active {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateX(5px);
+      background: rgba(99, 102, 241, 0.15);
+      color: white;
     }
     
     .nav-item i {
       width: 24px;
       text-align: center;
       font-size: 1.2rem;
+      color: var(--primary);
     }
     
     /* Main Content Styles */
@@ -116,14 +121,13 @@
       align-items: center;
       margin-bottom: 2.5rem;
       padding-bottom: 1.5rem;
-      border-bottom: 1px solid var(--light-gray);
+      border-bottom: 1px solid #334155;
     }
     
     .header h1 {
       font-size: 2.2rem;
-      color: var(--primary-dark);
       font-weight: 700;
-      background: linear-gradient(to right, var(--primary), var(--accent));
+      background: linear-gradient(to right, #8b5cf6, var(--accent-light));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -132,10 +136,12 @@
       display: flex;
       align-items: center;
       gap: 15px;
-      background: white;
+      background: rgba(15, 23, 42, 0.7);
       padding: 10px 20px;
       border-radius: 15px;
       box-shadow: var(--card-shadow);
+      border: 1px solid #334155;
+      backdrop-filter: blur(10px);
     }
     
     .user-avatar {
@@ -159,29 +165,80 @@
       object-fit: cover;
     }
     
+    /* Stats */
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      border: 1px solid #334155;
+      backdrop-filter: blur(10px);
+      transition: var(--transition);
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .stat-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+    }
+    
+    .stat-content h3 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: white;
+      line-height: 1.2;
+    }
+    
+    .stat-content p {
+      color: #94a3b8;
+      font-weight: 500;
+    }
+    
     /* Card Styles */
     .card {
-      background: white;
+      background: rgba(15, 23, 42, 0.7);
       border-radius: 20px;
       padding: 2.5rem;
       box-shadow: var(--card-shadow);
       margin-bottom: 2.5rem;
-      border: none;
-      transition: transform 0.3s;
+      border: 1px solid #334155;
+      transition: var(--transition);
       position: relative;
       overflow: hidden;
+      backdrop-filter: blur(10px);
     }
     
     .card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.15);
     }
     
     .card h2 {
       margin-bottom: 1.8rem;
-      color: var(--primary);
+      color: white;
       padding-bottom: 15px;
-      border-bottom: 1px solid var(--light-gray);
+      border-bottom: 1px solid #334155;
       font-weight: 700;
       font-size: 1.8rem;
       display: flex;
@@ -204,25 +261,26 @@
       display: block;
       margin-bottom: 0.7rem;
       font-weight: 600;
-      color: var(--dark);
+      color: white;
       font-size: 1.05rem;
     }
     
     input, textarea, select {
       width: 100%;
       padding: 14px 18px;
-      border: 1px solid #ddd;
+      border: 1px solid #334155;
       border-radius: 12px;
       font-size: 1rem;
-      transition: all 0.3s;
-      background: #f8f9fa;
+      transition: var(--transition);
+      background: rgba(15, 23, 42, 0.5);
       font-family: inherit;
+      color: white;
     }
     
     input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--primary);
-      background: #fff;
+      background: rgba(15, 23, 42, 0.8);
       box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
     }
     
@@ -241,7 +299,7 @@
       font-size: 1.05rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: var(--transition);
       box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
       display: inline-flex;
       align-items: center;
@@ -252,17 +310,6 @@
     .btn:hover {
       transform: translateY(-3px);
       box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
-    }
-    
-    .btn-outline {
-      background: transparent;
-      border: 2px solid var(--primary);
-      color: var(--primary);
-      box-shadow: none;
-    }
-    
-    .btn-outline:hover {
-      background: rgba(67, 97, 238, 0.1);
     }
     
     /* Status Messages */
@@ -294,7 +341,7 @@
     
     /* Config Badges */
     .config-badge {
-      background: rgba(67, 97, 238, 0.08);
+      background: rgba(67, 97, 238, 0.1);
       border: 1px solid rgba(67, 97, 238, 0.2);
       border-radius: 12px;
       padding: 15px 20px;
@@ -302,7 +349,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      transition: all 0.3s;
+      transition: var(--transition);
     }
     
     .config-badge:hover {
@@ -321,6 +368,7 @@
       font-family: monospace;
       word-break: break-all;
       flex: 1;
+      color: #cbd5e1;
     }
     
     .copy-btn {
@@ -329,7 +377,7 @@
       border-radius: 8px;
       padding: 8px 15px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: var(--transition);
       color: var(--primary);
       font-weight: 600;
     }
@@ -357,18 +405,18 @@
     }
     
     .post-card {
-      border: 1px solid #e0e0e0;
+      border: 1px solid #334155;
       border-radius: 16px;
       overflow: hidden;
       cursor: pointer;
-      transition: all 0.3s;
-      background: white;
+      transition: var(--transition);
+      background: rgba(15, 23, 42, 0.5);
       position: relative;
     }
     
     .post-card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
       border-color: var(--primary);
     }
     
@@ -390,33 +438,34 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      background: #f8f9fa;
+      background: rgba(15, 23, 42, 0.8);
+      color: #cbd5e1;
     }
     
     /* Comments Section */
     .comments-container {
       max-height: 350px;
       overflow-y: auto;
-      border: 1px solid #eee;
+      border: 1px solid #334155;
       padding: 15px;
       border-radius: 16px;
       margin-bottom: 20px;
-      background: #f8f9fa;
+      background: rgba(15, 23, 42, 0.5);
     }
     
     .comment-item {
       padding: 15px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid #334155;
       display: flex;
       align-items: flex-start;
       transition: background-color 0.2s;
-      background: white;
+      background: rgba(15, 23, 42, 0.7);
       border-radius: 12px;
       margin-bottom: 10px;
     }
     
     .comment-item:hover {
-      background-color: #f0f7ff;
+      background-color: rgba(67, 97, 238, 0.1);
     }
     
     .comment-item:last-child {
@@ -433,8 +482,13 @@
       font-size: 1.05rem;
     }
     
+    .comment-item div {
+      color: #cbd5e1;
+      margin: 5px 0;
+    }
+    
     .comment-item small {
-      color: var(--gray);
+      color: #94a3b8;
       display: block;
       margin-top: 5px;
     }
@@ -443,11 +497,12 @@
       margin-right: 15px;
       margin-top: 5px;
       transform: scale(1.3);
+      accent-color: var(--primary);
     }
     
     .section-title {
       font-size: 1.3rem;
-      color: var(--dark);
+      color: white;
       margin: 1.5rem 0 1rem;
       font-weight: 600;
     }
@@ -456,12 +511,14 @@
     ol.steps {
       padding-left: 1.8rem;
       line-height: 1.8;
+      counter-reset: step;
     }
     
     ol.steps li {
       margin-bottom: 1.2rem;
       padding-left: 10px;
       position: relative;
+      color: #cbd5e1;
     }
     
     ol.steps li::before {
@@ -553,48 +610,6 @@
       }
     }
     
-    /* Stats */
-    .stats-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin-bottom: 2rem;
-    }
-    
-    .stat-card {
-      background: white;
-      border-radius: 16px;
-      padding: 1.5rem;
-      box-shadow: var(--card-shadow);
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    
-    .stat-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.8rem;
-      background: rgba(67, 97, 238, 0.1);
-      color: var(--primary);
-    }
-    
-    .stat-content h3 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--primary);
-      line-height: 1.2;
-    }
-    
-    .stat-content p {
-      color: var(--gray);
-      font-weight: 500;
-    }
-    
     /* Animation */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
@@ -609,18 +624,22 @@
     .card:nth-child(2) { animation-delay: 0.2s; }
     .card:nth-child(3) { animation-delay: 0.3s; }
     
-    /* Decorations */
-    .card::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 100px;
-      height: 100px;
-      background: linear-gradient(45deg, var(--primary), transparent);
-      border-radius: 0 20px 0 100px;
-      z-index: -1;
-      opacity: 0.1;
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
     }
   </style>
 </head>
@@ -669,10 +688,11 @@
         <div class="user-info">
           <div class="user-avatar" id="user-avatar">
             <img id="profile-pic" src="" alt="Profile Picture" style="display: none;">
+            <div id="avatar-initials">S</div>
           </div>
           <div>
             <div id="username" style="font-size: 1.2rem; font-weight: 600;">@social_automator</div>
-            <small id="user-id" style="color: var(--gray);">Professional Account</small>
+            <small id="user-id" style="color: #94a3b8;">Professional Account</small>
           </div>
         </div>
       </div>
@@ -749,87 +769,39 @@
           <div class="form-group">
             <label for="postSelect"><i class="fas fa-image"></i> Select Post to Automate</label>
             <div id="postsContainer" class="post-grid">
-              <div class="post-card selected" data-id="178956">
-                <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" alt="Post">
-                <div class="post-card-caption">Summer collection is here! #fashion</div>
-              </div>
-              <div class="post-card" data-id="178957">
-                <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" alt="Post">
-                <div class="post-card-caption">New tech just dropped! #gadgets</div>
-              </div>
-              <div class="post-card" data-id="178958">
-                <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" alt="Post">
-                <div class="post-card-caption">Healthy breakfast ideas #food</div>
-              </div>
-              <div class="post-card" data-id="178959">
-                <img src="https://images.unsplash.com/photo-1511556820780-d912e42b4980?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" alt="Post">
-                <div class="post-card-caption">Our new product lineup #tech</div>
-              </div>
+              <!-- Posts will be loaded dynamically -->
             </div>
-            <input type="hidden" id="postId" name="postId" value="178956" required>
+            <input type="hidden" id="postId" name="postId" required>
           </div>
           
           <div class="form-group">
             <label for="keyword"><i class="fas fa-key"></i> Trigger Keyword</label>
             <input type="text" id="keyword" required placeholder="e.g. discount, freebie, promo" value="#request">
-            <small style="display: block; margin-top: 8px; color: var(--gray);">When someone comments with this word, they'll receive a DM</small>
           </div>
           
           <div class="form-group">
             <label for="response"><i class="fas fa-comment-dots"></i> DM Response</label>
             <textarea id="response" required placeholder="Message to send when keyword is detected. Use {username} to personalize: Hello {username}, thanks for your comment! Here's your special offer...">Hello {username}, thanks for your interest in our product! Here's your special discount code: INSTA25. Visit our store: [LINK]</textarea>
-            <small style="display: block; margin-top: 8px; color: var(--gray);">Personalize messages with {username} placeholder</small>
+            <small style="display: block; margin-top: 8px; color: #94a3b8;">Personalize messages with {username} placeholder</small>
           </div>
           
           <button type="submit" class="btn"><i class="fas fa-save"></i> Save Configuration</button>
-          <div id="status" class="status success" style="display: block;">Configuration saved successfully!</div>
+          <div id="status" class="status"></div>
         </form>
       </div>
       
       <div class="card">
         <h2><i class="fas fa-comments"></i> Manage Comments & Send Messages</h2>
         <div class="form-group">
-          <label for="viewCommentsBtn"><i class="fas fa-search"></i> View Comments for Selected Post</label>
           <button id="viewCommentsBtn" class="btn" style="width: auto">
-            <i class="fas fa-comments"></i> Load Comments (12)
+            <i class="fas fa-comments"></i> Load Comments
           </button>
         </div>
         
-        <div id="commentsSection" style="margin-top: 25px;">
+        <div id="commentsSection" style="margin-top: 25px; display: none;">
           <h3 class="section-title">Recent Comments</h3>
           <div id="commentsContainer" class="comments-container">
-            <div class="comment-item">
-              <input type="checkbox" class="user-checkbox" data-username="jane_doe" checked>
-              <div class="comment-info">
-                <strong>@jane_doe</strong>
-                <div>Love this product! #request more info please</div>
-                <small>2 hours ago</small>
-              </div>
-            </div>
-            <div class="comment-item">
-              <input type="checkbox" class="user-checkbox" data-username="tech_guru">
-              <div class="comment-info">
-                <strong>@tech_guru</strong>
-                <div>How can I get the discount? #request</div>
-                <small>3 hours ago</small>
-              </div>
-            </div>
-            <div class="comment-item">
-              <input type="checkbox" class="user-checkbox" data-username="travel_buddy">
-              <div class="comment-info">
-                <strong>@travel_buddy</strong>
-                <div>This looks amazing! When will it be available in Europe?</div>
-                <small>4 hours ago</small>
-              </div>
-            </div>
-            <div class="comment-item">
-              <input type="checkbox" class="user-checkbox" data-username="fashion_icon">
-              <div class="comment-info">
-                <strong>@fashion_icon</strong>
-                <div>#request for the summer collection catalog</div>
-                <small>5 hours ago</small>
-              </div>
-            </div>
+            <!-- Comments will be loaded dynamically -->
           </div>
           
           <div class="form-group">
@@ -837,8 +809,8 @@
             <textarea id="manualMessage" placeholder="Enter your message here...">Thanks for your comment! Here's your special discount code: INSTA25. Visit our store: [LINK]</textarea>
           </div>
           
-          <button id="sendSelectedBtn" class="btn"><i class="fas fa-paper-plane"></i> Send to Selected Users (2)</button>
-          <div id="manualMessageStatus" class="status success" style="display: block;">Messages sent successfully to 2 users!</div>
+          <button id="sendSelectedBtn" class="btn" disabled><i class="fas fa-paper-plane"></i> Send to Selected Users</button>
+          <div id="manualMessageStatus" class="status"></div>
         </div>
       </div>
       
@@ -858,7 +830,7 @@
   </div>
 
   <script>
-    // Configuration values
+    // Configuration values from environment
     const CONFIG = {
       ACCESS_TOKEN: "EAASdsfjsdkfjh2342k3j4h2k3jh4g23k4jhg234",
       PAGE_ID: "17841405291564580",
@@ -866,12 +838,76 @@
       DM_MESSAGE: "Hello {username}, thanks for your interest! Here's your special offer: [LINK]"
     };
 
+    // Sample posts data
+    const samplePosts = [
+      { id: "178956", media_url: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", caption: "Summer collection is here! #fashion" },
+      { id: "178957", media_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", caption: "New tech just dropped! #gadgets" },
+      { id: "178958", media_url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", caption: "Healthy breakfast ideas #food" },
+      { id: "178959", media_url: "https://images.unsplash.com/photo-1511556820780-d912e42b4980?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", caption: "Our new product lineup #tech" }
+    ];
+
+    // Sample comments data
+    const sampleComments = [
+      { id: "1", username: "jane_doe", text: "Love this product! #request more info please", timestamp: "2023-10-15T14:30:00Z" },
+      { id: "2", username: "tech_guru", text: "How can I get the discount? #request", timestamp: "2023-10-15T13:45:00Z" },
+      { id: "3", username: "travel_buddy", text: "This looks amazing! When will it be available in Europe?", timestamp: "2023-10-15T12:20:00Z" },
+      { id: "4", username: "fashion_icon", text: "#request for the summer collection catalog", timestamp: "2023-10-15T11:15:00Z" }
+    ];
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', () => {
+      // Display configuration badges
+      displayConfigBadges();
+      
+      // Load sample posts
+      loadSamplePosts();
+      
+      // Set form values
+      document.getElementById('keyword').value = CONFIG.KEYWORD;
+      document.getElementById('response').value = CONFIG.DM_MESSAGE;
+      
+      // Set user info
+      document.getElementById('username').textContent = '@social_automator';
+      document.getElementById('user-avatar').textContent = 'S';
+    });
+
     // Display configuration badges
     function displayConfigBadges() {
       document.getElementById('access-token-display').textContent = CONFIG.ACCESS_TOKEN;
       document.getElementById('page-id-display').textContent = CONFIG.PAGE_ID;
       document.getElementById('keyword-display').textContent = CONFIG.KEYWORD;
       document.getElementById('message-display').textContent = CONFIG.DM_MESSAGE;
+    }
+
+    // Load sample posts
+    function loadSamplePosts() {
+      const postsContainer = document.getElementById('postsContainer');
+      postsContainer.innerHTML = '';
+      
+      samplePosts.forEach(post => {
+        const card = document.createElement('div');
+        card.className = 'post-card';
+        card.dataset.id = post.id;
+        
+        const img = document.createElement('img');
+        img.src = post.media_url;
+        img.alt = 'Post thumbnail';
+        
+        const caption = document.createElement('div');
+        caption.className = 'post-card-caption';
+        caption.textContent = post.caption;
+        
+        card.appendChild(img);
+        card.appendChild(caption);
+        
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.post-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          document.getElementById('postId').value = post.id;
+        });
+        
+        postsContainer.appendChild(card);
+      });
     }
 
     // Copy to clipboard function
@@ -919,20 +955,22 @@
       }, 1000);
     });
 
-    // Post selection
-    document.querySelectorAll('.post-card').forEach(card => {
-      card.addEventListener('click', () => {
-        document.querySelectorAll('.post-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        document.getElementById('postId').value = card.dataset.id;
-      });
-    });
-
     // Form submission
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
+      const postId = document.getElementById('postId').value;
+      const keyword = document.getElementById('keyword').value;
+      const response = document.getElementById('response').value;
       const statusEl = document.getElementById('status');
+      
+      if (!postId) {
+        statusEl.textContent = 'Please select a post to automate';
+        statusEl.className = 'status error';
+        statusEl.style.display = 'block';
+        return;
+      }
+      
       statusEl.textContent = '💾 Saving configuration...';
       statusEl.className = 'status';
       statusEl.style.display = 'block';
@@ -943,8 +981,8 @@
         statusEl.className = 'status success';
         
         // Update the keyword and message in CONFIG
-        CONFIG.KEYWORD = document.getElementById('keyword').value;
-        CONFIG.DM_MESSAGE = document.getElementById('response').value;
+        CONFIG.KEYWORD = keyword;
+        CONFIG.DM_MESSAGE = response;
         
         // Update displayed values
         document.getElementById('keyword-display').textContent = CONFIG.KEYWORD;
@@ -952,18 +990,55 @@
       }, 1000);
     });
 
+    // Load comments button
+    document.getElementById('viewCommentsBtn').addEventListener('click', () => {
+      const postId = document.getElementById('postId').value;
+      if (!postId) {
+        alert('Please select a post first');
+        return;
+      }
+      
+      loadComments();
+      document.getElementById('commentsSection').style.display = 'block';
+    });
+
+    // Load sample comments
+    function loadComments() {
+      const commentsContainer = document.getElementById('commentsContainer');
+      commentsContainer.innerHTML = '';
+      
+      sampleComments.forEach(comment => {
+        const commentEl = document.createElement('div');
+        commentEl.className = 'comment-item';
+        
+        commentEl.innerHTML = `
+          <input type="checkbox" class="user-checkbox" data-username="${comment.username}">
+          <div class="comment-info">
+            <strong>${comment.username}</strong>
+            <div>${comment.text}</div>
+            <small>${new Date(comment.timestamp).toLocaleString()}</small>
+          </div>
+        `;
+        
+        commentsContainer.appendChild(commentEl);
+      });
+    }
+
     // Comment selection
     document.addEventListener('change', (e) => {
       if (e.target.classList.contains('user-checkbox')) {
         const selectedCount = document.querySelectorAll('.user-checkbox:checked').length;
+        document.getElementById('sendSelectedBtn').disabled = selectedCount === 0;
         document.getElementById('sendSelectedBtn').innerHTML = 
-          `<i class="fas fa-paper-plane"></i> Send to Selected Users (${selectedCount})`;
+          `<i class="fas fa-paper-plane"></i> Send to ${selectedCount} Selected Users`;
       }
     });
 
     // Send messages
     document.getElementById('sendSelectedBtn').addEventListener('click', async () => {
       const message = document.getElementById('manualMessage').value;
+      const statusEl = document.getElementById('manualMessageStatus');
+      
       if (!message) {
         alert('Please enter a message');
         return;
@@ -977,7 +1052,6 @@
         return;
       }
       
-      const statusEl = document.getElementById('manualMessageStatus');
       statusEl.textContent = `✈️ Sending messages to ${selectedUsers.length} users...`;
       statusEl.className = 'status';
       statusEl.style.display = 'block';
@@ -990,16 +1064,8 @@
         document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
         document.getElementById('sendSelectedBtn').innerHTML = 
           `<i class="fas fa-paper-plane"></i> Send to Selected Users`;
+        document.getElementById('sendSelectedBtn').disabled = true;
       }, 1500);
-    });
-
-    // Initialize page
-    document.addEventListener('DOMContentLoaded', () => {
-      displayConfigBadges();
-      
-      // Set user info
-      document.getElementById('username').textContent = '@social_automator';
-      document.getElementById('user-avatar').textContent = 'S';
     });
   </script>
 </body>
