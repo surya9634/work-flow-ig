@@ -3,147 +3,82 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Instagram Automation Dashboard</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <title>Workflow Dashboard</title>
   <style>
     :root {
       --primary: #4361ee;
-      --primary-dark: #3a0ca3;
+      --secondary: #3a0ca3;
       --accent: #7209b7;
-      --accent-light: #f72585;
       --light: #f8f9fa;
       --dark: #212529;
-      --darker: #14171a;
       --gray: #6c757d;
       --light-gray: #e9ecef;
       --success: #2ecc71;
       --error: #e74c3c;
-      --warning: #f39c12;
-      --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-      --sidebar-width: 280px;
-      --transition: all 0.3s ease;
+      --card-shadow: 0 10px 20px rgba(0,0,0,0.05);
     }
-    
-    * { 
-      box-sizing: border-box; 
-      margin: 0; 
-      padding: 0; 
-    }
-    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      color: #e2e8f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background-color: #f8f9fa;
+      color: var(--dark);
       line-height: 1.6;
-      min-height: 100vh;
-      padding-bottom: 2rem;
     }
-    
     .dashboard {
       display: grid;
-      grid-template-columns: var(--sidebar-width) 1fr;
+      grid-template-columns: 250px 1fr;
       min-height: 100vh;
     }
-    
-    /* Sidebar Styles */
     .sidebar {
-      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-      color: #cbd5e1;
-      padding: 2rem 1.5rem;
+      background: linear-gradient(180deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 2rem 1rem;
       position: fixed;
-      width: var(--sidebar-width);
+      width: 250px;
       height: 100vh;
       box-shadow: 3px 0 15px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      z-index: 100;
-      border-right: 1px solid #334155;
     }
-    
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
       font-size: 1.8rem;
       font-weight: 700;
       margin-bottom: 3rem;
-      padding: 0 0.5rem;
-      color: white;
+      padding: 0 1rem;
+      text-align: center;
+      letter-spacing: 1px;
     }
-    
-    .brand-icon {
-      background: var(--primary);
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 1.5rem;
-    }
-    
     .nav-item {
-      padding: 14px 1.5rem;
-      border-radius: 12px;
+      padding: 12px 1.5rem;
+      border-radius: 8px;
       margin-bottom: 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 15px;
-      transition: var(--transition);
+      gap: 12px;
+      transition: all 0.3s;
       font-weight: 500;
-      font-size: 1.1rem;
     }
-    
     .nav-item:hover, .nav-item.active {
-      background: rgba(99, 102, 241, 0.15);
-      color: white;
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(5px);
     }
-    
-    .nav-item i {
-      width: 24px;
-      text-align: center;
-      font-size: 1.2rem;
-      color: var(--primary);
-    }
-    
-    /* Main Content Styles */
     .main-content {
-      padding: 2.5rem 3rem;
-      margin-left: var(--sidebar-width);
-      width: calc(100% - var(--sidebar-width));
+      padding: 2.5rem;
+      margin-left: 250px;
+      width: calc(100% - 250px);
     }
-    
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 2.5rem;
       padding-bottom: 1.5rem;
-      border-bottom: 1px solid #334155;
+      border-bottom: 1px solid var(--light-gray);
     }
-    
-    .header h1 {
-      font-size: 2.2rem;
-      font-weight: 700;
-      background: linear-gradient(to right, #8b5cf6, var(--accent-light));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
     .user-info {
       display: flex;
       align-items: center;
       gap: 15px;
-      background: rgba(15, 23, 42, 0.7);
-      padding: 10px 20px;
-      border-radius: 15px;
-      box-shadow: var(--card-shadow);
-      border: 1px solid #334155;
-      backdrop-filter: blur(10px);
     }
-    
     .user-avatar {
       width: 55px;
       height: 55px;
@@ -158,664 +93,323 @@
       overflow: hidden;
       box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
     }
-    
     .user-avatar img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
-    
-    /* Stats */
-    .stats-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin-bottom: 2rem;
-    }
-    
-    .stat-card {
-      background: rgba(15, 23, 42, 0.7);
-      border-radius: 16px;
-      padding: 1.5rem;
-      box-shadow: var(--card-shadow);
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      border: 1px solid #334155;
-      backdrop-filter: blur(10px);
-      transition: var(--transition);
-    }
-    
-    .stat-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    }
-    
-    .stat-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.8rem;
-      background: rgba(99, 102, 241, 0.1);
-      color: var(--primary);
-    }
-    
-    .stat-content h3 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: white;
-      line-height: 1.2;
-    }
-    
-    .stat-content p {
-      color: #94a3b8;
-      font-weight: 500;
-    }
-    
-    /* Card Styles */
     .card {
-      background: rgba(15, 23, 42, 0.7);
-      border-radius: 20px;
+      background: white;
+      border-radius: 16px;
       padding: 2.5rem;
       box-shadow: var(--card-shadow);
       margin-bottom: 2.5rem;
-      border: 1px solid #334155;
-      transition: var(--transition);
-      position: relative;
-      overflow: hidden;
-      backdrop-filter: blur(10px);
+      border: 1px solid #eee;
+      transition: transform 0.3s;
     }
-    
     .card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.1);
     }
-    
     .card h2 {
       margin-bottom: 1.8rem;
-      color: white;
+      color: var(--primary);
       padding-bottom: 15px;
-      border-bottom: 1px solid #334155;
-      font-weight: 700;
+      border-bottom: 1px solid var(--light-gray);
+      font-weight: 600;
       font-size: 1.8rem;
-      display: flex;
-      align-items: center;
-      gap: 12px;
     }
-    
-    .card h2 i {
-      background: linear-gradient(45deg, var(--primary), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    /* Form Styles */
     .form-group {
       margin-bottom: 1.8rem;
     }
-    
     label {
       display: block;
       margin-bottom: 0.7rem;
       font-weight: 600;
-      color: white;
+      color: var(--dark);
       font-size: 1.05rem;
     }
-    
     input, textarea, select {
       width: 100%;
       padding: 14px 18px;
-      border: 1px solid #334155;
-      border-radius: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
       font-size: 1rem;
-      transition: var(--transition);
-      background: rgba(15, 23, 42, 0.5);
+      transition: all 0.3s;
+      background: #f8f9fa;
       font-family: inherit;
-      color: white;
     }
-    
     input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--primary);
-      background: rgba(15, 23, 42, 0.8);
+      background: #fff;
       box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
     }
-    
     textarea {
       min-height: 130px;
       resize: vertical;
       line-height: 1.6;
     }
-    
     .btn {
       background: linear-gradient(45deg, var(--primary), var(--accent));
       color: white;
-      padding: 15px 35px;
+      padding: 14px 35px;
       border: none;
       border-radius: 12px;
       font-size: 1.05rem;
       font-weight: 600;
       cursor: pointer;
-      transition: var(--transition);
+      transition: all 0.3s;
       box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
     }
-    
     .btn:hover {
       transform: translateY(-3px);
       box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
     }
-    
-    /* Status Messages */
     .status {
       padding: 16px;
-      border-radius: 12px;
+      border-radius: 10px;
       margin-top: 1.2rem;
       display: none;
       font-weight: 500;
     }
-    
     .success {
       background: rgba(46, 204, 113, 0.1);
       color: var(--success);
       border: 1px solid rgba(46, 204, 113, 0.3);
     }
-    
     .error {
       background: rgba(231, 76, 60, 0.1);
       color: var(--error);
       border: 1px solid rgba(231, 76, 60, 0.3);
     }
-    
-    .warning {
-      background: rgba(243, 156, 18, 0.1);
-      color: var(--warning);
-      border: 1px solid rgba(243, 156, 18, 0.3);
-    }
-    
-    /* Config Badges */
-    .config-badge {
-      background: rgba(67, 97, 238, 0.1);
-      border: 1px solid rgba(67, 97, 238, 0.2);
-      border-radius: 12px;
-      padding: 15px 20px;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      transition: var(--transition);
-    }
-    
-    .config-badge:hover {
-      background: rgba(67, 97, 238, 0.15);
-      transform: translateY(-3px);
-    }
-    
-    .config-badge strong {
-      color: var(--primary);
-      min-width: 160px;
-      display: inline-block;
-      font-weight: 600;
-    }
-    
-    .config-badge span {
-      font-family: monospace;
-      word-break: break-all;
-      flex: 1;
-      color: #cbd5e1;
-    }
-    
-    .copy-btn {
-      background: rgba(67, 97, 238, 0.2);
-      border: none;
-      border-radius: 8px;
-      padding: 8px 15px;
-      cursor: pointer;
-      transition: var(--transition);
-      color: var(--primary);
-      font-weight: 600;
-    }
-    
-    .copy-btn:hover {
-      background: rgba(67, 97, 238, 0.3);
-    }
-    
-    .config-row {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 1.5rem;
-    }
-    
-    .config-col {
-      flex: 1;
-    }
-    
-    /* Posts Grid */
     .post-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 20px;
       margin-top: 15px;
     }
-    
     .post-card {
-      border: 1px solid #334155;
-      border-radius: 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
       overflow: hidden;
       cursor: pointer;
-      transition: var(--transition);
-      background: rgba(15, 23, 42, 0.5);
+      transition: all 0.3s;
+      background: white;
       position: relative;
     }
-    
     .post-card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
       border-color: var(--primary);
     }
-    
     .post-card.selected {
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
     }
-    
     .post-card img {
       width: 100%;
       aspect-ratio: 1/1;
       object-fit: cover;
       display: block;
     }
-    
     .post-card-caption {
       padding: 12px;
       font-size: 0.85rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      background: rgba(15, 23, 42, 0.8);
-      color: #cbd5e1;
+      background: #f8f9fa;
     }
-    
-    /* Comments Section */
     .comments-container {
       max-height: 350px;
       overflow-y: auto;
-      border: 1px solid #334155;
+      border: 1px solid #eee;
       padding: 15px;
-      border-radius: 16px;
+      border-radius: 12px;
       margin-bottom: 20px;
-      background: rgba(15, 23, 42, 0.5);
+      background: #f8f9fa;
     }
-    
     .comment-item {
       padding: 15px;
-      border-bottom: 1px solid #334155;
+      border-bottom: 1px solid #eee;
       display: flex;
       align-items: flex-start;
       transition: background-color 0.2s;
-      background: rgba(15, 23, 42, 0.7);
-      border-radius: 12px;
+      background: white;
+      border-radius: 10px;
       margin-bottom: 10px;
     }
-    
     .comment-item:hover {
-      background-color: rgba(67, 97, 238, 0.1);
+      background-color: #f0f7ff;
     }
-    
     .comment-item:last-child {
       margin-bottom: 0;
       border-bottom: none;
     }
-    
     .comment-info {
       flex: 1;
     }
-    
     .comment-item strong {
       color: var(--primary);
       font-size: 1.05rem;
     }
-    
-    .comment-item div {
-      color: #cbd5e1;
-      margin: 5px 0;
-    }
-    
     .comment-item small {
-      color: #94a3b8;
+      color: var(--gray);
       display: block;
       margin-top: 5px;
     }
-    
     .user-checkbox {
       margin-right: 15px;
       margin-top: 5px;
       transform: scale(1.3);
-      accent-color: var(--primary);
     }
-    
     .section-title {
       font-size: 1.3rem;
-      color: white;
+      color: var(--dark);
       margin: 1.5rem 0 1rem;
       font-weight: 600;
     }
-    
-    /* Steps */
     ol.steps {
       padding-left: 1.8rem;
       line-height: 1.8;
-      counter-reset: step;
     }
-    
     ol.steps li {
       margin-bottom: 1.2rem;
       padding-left: 10px;
-      position: relative;
-      color: #cbd5e1;
     }
-    
-    ol.steps li::before {
-      content: counter(step);
-      counter-increment: step;
-      background: linear-gradient(45deg, var(--primary), var(--accent));
-      color: white;
+    ol.steps li::marker {
+      color: var(--primary);
       font-weight: bold;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      position: absolute;
-      left: -40px;
-      top: 0;
     }
-    
-    /* Responsive */
-    @media (max-width: 1100px) {
+    @media (max-width: 900px) {
       .dashboard {
         grid-template-columns: 1fr;
       }
-      
       .sidebar {
         position: relative;
         width: 100%;
         height: auto;
         padding: 1.5rem;
       }
-      
       .main-content {
         margin-left: 0;
         width: 100%;
         padding: 1.8rem;
       }
-      
       .brand {
         margin-bottom: 1.5rem;
       }
-      
-      .config-row {
-        flex-direction: column;
-        gap: 15px;
-      }
-      
       .post-grid {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       }
     }
-    
-    @media (max-width: 768px) {
-      .main-content {
-        padding: 1.5rem;
-      }
-      
-      .card {
-        padding: 1.8rem 1.5rem;
-      }
-      
-      .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
-      }
-      
-      .user-info {
-        width: 100%;
-        justify-content: space-between;
-      }
-      
-      .post-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      }
-    }
-    
-    @media (max-width: 480px) {
+    @media (max-width: 600px) {
       .main-content {
         padding: 1.5rem 1rem;
       }
-      
       .card {
-        padding: 1.5rem 1.2rem;
+        padding: 1.8rem 1.5rem;
       }
-      
       .post-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
       }
-    }
-    
-    /* Animation */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .card {
-      animation: fadeIn 0.5s ease-out forwards;
-    }
-    
-    .card:nth-child(1) { animation-delay: 0.1s; }
-    .card:nth-child(2) { animation-delay: 0.2s; }
-    .card:nth-child(3) { animation-delay: 0.3s; }
-    
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-    
-    ::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.5);
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: var(--primary);
-      border-radius: 4px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--accent);
     }
   </style>
 </head>
 <body>
   <div class="dashboard">
     <div class="sidebar">
-      <div class="brand">
-        <div class="brand-icon">
-          <i class="fas fa-bolt"></i>
-        </div>
-        <div>InstaFlow</div>
-      </div>
+      <div class="brand">Workflow</div>
       <div class="nav-item active">
-        <i class="fas fa-chart-line"></i>
-        <span>Dashboard</span>
+        <span>📊 Dashboard</span>
       </div>
       <div class="nav-item">
-        <i class="fas fa-robot"></i>
-        <span>Automation</span>
+        <span>⚙️ Automation</span>
       </div>
       <div class="nav-item">
-        <i class="fas fa-chart-pie"></i>
-        <span>Analytics</span>
+        <span>📈 Analytics</span>
       </div>
       <div class="nav-item">
-        <i class="fas fa-file-alt"></i>
-        <span>Templates</span>
+        <span>💬 Templates</span>
       </div>
       <div class="nav-item">
-        <i class="fas fa-bell"></i>
-        <span>Notifications</span>
+        <span>🔔 Notifications</span>
       </div>
       <div class="nav-item">
-        <i class="fas fa-user-cog"></i>
-        <span>Account</span>
-      </div>
-      <div class="nav-item" style="margin-top: auto;">
-        <i class="fas fa-cog"></i>
-        <span>Settings</span>
+        <span>👤 Account</span>
       </div>
     </div>
     
     <div class="main-content">
       <div class="header">
-        <h1><i class="fas fa-magic"></i> Instagram Automation Dashboard</h1>
+        <h1>Automation Dashboard</h1>
         <div class="user-info">
           <div class="user-avatar" id="user-avatar">
             <img id="profile-pic" src="" alt="Profile Picture" style="display: none;">
-            <div id="avatar-initials">S</div>
           </div>
           <div>
-            <div id="username" style="font-size: 1.2rem; font-weight: 600;">@social_automator</div>
-            <small id="user-id" style="color: #94a3b8;">Professional Account</small>
-          </div>
-        </div>
-      </div>
-      
-      <div class="stats-container">
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-comments"></i>
-          </div>
-          <div class="stat-content">
-            <h3>128</h3>
-            <p>Comments Processed</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-paper-plane"></i>
-          </div>
-          <div class="stat-content">
-            <h3>89</h3>
-            <p>DMs Sent</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-bolt"></i>
-          </div>
-          <div class="stat-content">
-            <h3>42</h3>
-            <p>Automated Replies</p>
+            <div id="username" style="font-size: 1.2rem; font-weight: 600;">Loading...</div>
+            <small id="user-id" style="color: var(--gray);"></small>
           </div>
         </div>
       </div>
       
       <div class="card">
-        <h2><i class="fas fa-key"></i> Instagram Configuration</h2>
-        <div class="config-row">
-          <div class="config-col">
-            <div class="config-badge">
-              <strong>Access Token:</strong>
-              <span id="access-token-display">EAASdsfjsdkfjh2342k3j4h2k3jh4g23k4jhg234</span>
-              <button class="copy-btn" onclick="copyToClipboard('access-token-display')">📋 Copy</button>
-            </div>
-            <div class="config-badge">
-              <strong>Page ID:</strong>
-              <span id="page-id-display">17841405291564580</span>
-              <button class="copy-btn" onclick="copyToClipboard('page-id-display')">📋 Copy</button>
-            </div>
-          </div>
-          <div class="config-col">
-            <div class="config-badge">
-              <strong>Trigger Keyword:</strong>
-              <span id="keyword-display">#request</span>
-              <button class="copy-btn" onclick="copyToClipboard('keyword-display')">📋 Copy</button>
-            </div>
-            <div class="config-badge">
-              <strong>DM Message:</strong>
-              <span id="message-display">Hello {username}, thanks for your interest! Here's your special offer: [LINK]</span>
-              <button class="copy-btn" onclick="copyToClipboard('message-display')">📋 Copy</button>
-            </div>
-          </div>
-        </div>
-        <div class="form-group">
-          <button id="refreshConfigBtn" class="btn" style="background: linear-gradient(45deg, #0ca678, #20c997);">
-            <i class="fas fa-sync-alt"></i> Refresh Configuration
-          </button>
-          <div id="configStatus" class="status"></div>
-        </div>
-      </div>
-      
-      <div class="card">
-        <h2><i class="fas fa-cogs"></i> Comment-to-DM Configuration</h2>
+        <h2>Comment-to-DM Configuration</h2>
         <form id="configForm">
           <div class="form-group">
-            <label for="postSelect"><i class="fas fa-image"></i> Select Post to Automate</label>
+            <label for="postSelect">Select Post to Automate</label>
             <div id="postsContainer" class="post-grid">
-              <!-- Posts will be loaded dynamically -->
+              <!-- Posts will be loaded here as cards -->
             </div>
             <input type="hidden" id="postId" name="postId" required>
           </div>
           
           <div class="form-group">
-            <label for="keyword"><i class="fas fa-key"></i> Trigger Keyword</label>
-            <input type="text" id="keyword" required placeholder="e.g. discount, freebie, promo" value="#request">
+            <label for="keyword">Trigger Keyword</label>
+            <input type="text" id="keyword" required placeholder="e.g. discount, freebie, promo">
+            <small style="display: block; margin-top: 8px; color: var(--gray);">When someone comments with this word, they'll receive a DM</small>
           </div>
           
           <div class="form-group">
-            <label for="response"><i class="fas fa-comment-dots"></i> DM Response</label>
-            <textarea id="response" required placeholder="Message to send when keyword is detected. Use {username} to personalize: Hello {username}, thanks for your comment! Here's your special offer...">Hello {username}, thanks for your interest in our product! Here's your special discount code: INSTA25. Visit our store: [LINK]</textarea>
-            <small style="display: block; margin-top: 8px; color: #94a3b8;">Personalize messages with {username} placeholder</small>
+            <label for="response">DM Response</label>
+            <textarea id="response" required placeholder="Message to send when keyword is detected. Use {username} to personalize: Hello {username}, thanks for your comment! Here's your special offer..."></textarea>
+            <small style="display: block; margin-top: 8px; color: var(--gray);">Personalize messages with {username} placeholder</small>
           </div>
           
-          <button type="submit" class="btn"><i class="fas fa-save"></i> Save Configuration</button>
+          <button type="submit" class="btn">💾 Save Configuration</button>
           <div id="status" class="status"></div>
         </form>
       </div>
       
       <div class="card">
-        <h2><i class="fas fa-comments"></i> Manage Comments & Send Messages</h2>
+        <h2>Manage Comments & Send Messages</h2>
         <div class="form-group">
-          <button id="viewCommentsBtn" class="btn" style="width: auto">
-            <i class="fas fa-comments"></i> Load Comments
-          </button>
+          <label for="viewCommentsBtn">View Comments for Selected Post</label>
+          <button id="viewCommentsBtn" class="btn" style="width: auto">🔍 Load Comments</button>
         </div>
         
-        <div id="commentsSection" style="margin-top: 25px; display: none;">
-          <h3 class="section-title">Recent Comments</h3>
-          <div id="commentsContainer" class="comments-container">
-            <!-- Comments will be loaded dynamically -->
-          </div>
+        <div id="commentsSection" style="display: none; margin-top: 25px;">
+          <h3 class="section-title">Comments</h3>
+          <div id="commentsContainer" class="comments-container"></div>
           
           <div class="form-group">
-            <label for="manualMessage"><i class="fas fa-envelope"></i> Message to Send</label>
-            <textarea id="manualMessage" placeholder="Enter your message here...">Thanks for your comment! Here's your special discount code: INSTA25. Visit our store: [LINK]</textarea>
+            <label for="manualMessage">Message to Send</label>
+            <textarea id="manualMessage" placeholder="Enter your message here..."></textarea>
           </div>
           
-          <button id="sendSelectedBtn" class="btn" disabled><i class="fas fa-paper-plane"></i> Send to Selected Users</button>
+          <button id="sendSelectedBtn" class="btn" disabled>✉️ Send to Selected Users</button>
           <div id="manualMessageStatus" class="status"></div>
         </div>
       </div>
       
       <div class="card">
-        <h2><i class="fas fa-info-circle"></i> How It Works</h2>
+        <h2>How It Works</h2>
         <ol class="steps">
           <li>Select a post you want to monitor for comments</li>
           <li>Set a keyword that will trigger automated DMs</li>
@@ -823,139 +417,98 @@
           <li>Make sure your Instagram account is set to <strong>Professional Account</strong></li>
           <li>Messages will be sent from your Instagram account</li>
           <li>Use {username} in your response to personalize messages</li>
-          <li>Monitor performance through the analytics dashboard</li>
         </ol>
       </div>
     </div>
   </div>
 
   <script>
-    // Configuration values from environment
-    const CONFIG = {
-      ACCESS_TOKEN: "EAASdsfjsdkfjh2342k3j4h2k3jh4g23k4jhg234",
-      PAGE_ID: "17841405291564580",
-      KEYWORD: "#request",
-      DM_MESSAGE: "Hello {username}, thanks for your interest! Here's your special offer: [LINK]"
-    };
-
-    // Sample posts data
-    const samplePosts = [
-      { id: "178956", media_url: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", caption: "Summer collection is here! #fashion" },
-      { id: "178957", media_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", caption: "New tech just dropped! #gadgets" },
-      { id: "178958", media_url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", caption: "Healthy breakfast ideas #food" },
-      { id: "178959", media_url: "https://images.unsplash.com/photo-1511556820780-d912e42b4980?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", caption: "Our new product lineup #tech" }
-    ];
-
-    // Sample comments data
-    const sampleComments = [
-      { id: "1", username: "jane_doe", text: "Love this product! #request more info please", timestamp: "2023-10-15T14:30:00Z" },
-      { id: "2", username: "tech_guru", text: "How can I get the discount? #request", timestamp: "2023-10-15T13:45:00Z" },
-      { id: "3", username: "travel_buddy", text: "This looks amazing! When will it be available in Europe?", timestamp: "2023-10-15T12:20:00Z" },
-      { id: "4", username: "fashion_icon", text: "#request for the summer collection catalog", timestamp: "2023-10-15T11:15:00Z" }
-    ];
-
-    // Initialize the page
-    document.addEventListener('DOMContentLoaded', () => {
-      // Display configuration badges
-      displayConfigBadges();
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
+    
+    if (userId) {
+      document.getElementById('user-id').textContent = `ID: ${userId}`;
       
-      // Load sample posts
-      loadSamplePosts();
-      
-      // Set form values
-      document.getElementById('keyword').value = CONFIG.KEYWORD;
-      document.getElementById('response').value = CONFIG.DM_MESSAGE;
-      
-      // Set user info
-      document.getElementById('username').textContent = '@social_automator';
-      document.getElementById('user-avatar').textContent = 'S';
-    });
-
-    // Display configuration badges
-    function displayConfigBadges() {
-      document.getElementById('access-token-display').textContent = CONFIG.ACCESS_TOKEN;
-      document.getElementById('page-id-display').textContent = CONFIG.PAGE_ID;
-      document.getElementById('keyword-display').textContent = CONFIG.KEYWORD;
-      document.getElementById('message-display').textContent = CONFIG.DM_MESSAGE;
-    }
-
-    // Load sample posts
-    function loadSamplePosts() {
-      const postsContainer = document.getElementById('postsContainer');
-      postsContainer.innerHTML = '';
-      
-      samplePosts.forEach(post => {
-        const card = document.createElement('div');
-        card.className = 'post-card';
-        card.dataset.id = post.id;
-        
-        const img = document.createElement('img');
-        img.src = post.media_url;
-        img.alt = 'Post thumbnail';
-        
-        const caption = document.createElement('div');
-        caption.className = 'post-card-caption';
-        caption.textContent = post.caption;
-        
-        card.appendChild(img);
-        card.appendChild(caption);
-        
-        card.addEventListener('click', () => {
-          document.querySelectorAll('.post-card').forEach(c => c.classList.remove('selected'));
-          card.classList.add('selected');
-          document.getElementById('postId').value = post.id;
+      fetch(`/user-info?userId=${userId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch user info');
+          return response.json();
+        })
+        .then(data => {
+          if (data.username) {
+            document.getElementById('username').textContent = data.username;
+            const profilePic = document.getElementById('profile-pic');
+            const avatarDiv = document.getElementById('user-avatar');
+            
+            if (data.profile_pic) {
+              profilePic.src = data.profile_pic;
+              profilePic.style.display = 'block';
+            } else {
+              profilePic.style.display = 'none';
+              avatarDiv.textContent = data.username.charAt(0).toUpperCase();
+            }
+          }
+        })
+        .catch(error => {
+          console.error('User info fetch error:', error);
+          document.getElementById('username').textContent = 'Instagram User';
         });
-        
-        postsContainer.appendChild(card);
-      });
-    }
-
-    // Copy to clipboard function
-    function copyToClipboard(elementId) {
-      const element = document.getElementById(elementId);
-      const text = element.textContent;
       
-      navigator.clipboard.writeText(text).then(() => {
-        const statusEl = document.getElementById('configStatus');
-        statusEl.textContent = `✅ Copied to clipboard!`;
-        statusEl.className = 'status success';
-        statusEl.style.display = 'block';
-        
-        setTimeout(() => {
-          statusEl.style.display = 'none';
-        }, 2000);
-      }).catch(err => {
-        console.error('Failed to copy: ', err);
-        const statusEl = document.getElementById('configStatus');
-        statusEl.textContent = `❌ Failed to copy!`;
-        statusEl.className = 'status error';
-        statusEl.style.display = 'block';
-      });
+      loadUserPosts();
+    } else {
+      window.location.href = '/';
     }
-
-    // Refresh configuration
-    document.getElementById('refreshConfigBtn').addEventListener('click', () => {
-      const statusEl = document.getElementById('configStatus');
-      statusEl.textContent = '🔄 Refreshing configuration...';
-      statusEl.className = 'status';
-      statusEl.style.display = 'block';
+    
+    function loadUserPosts() {
+      const postsContainer = document.getElementById('postsContainer');
+      postsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Loading your posts...</p>';
       
-      // Simulate refresh delay
-      setTimeout(() => {
-        displayConfigBadges();
-        document.getElementById('keyword').value = CONFIG.KEYWORD;
-        document.getElementById('response').value = CONFIG.DM_MESSAGE;
-        
-        statusEl.textContent = '✅ Configuration refreshed successfully!';
-        statusEl.className = 'status success';
-        
-        setTimeout(() => {
-          statusEl.style.display = 'none';
-        }, 2000);
-      }, 1000);
-    });
-
-    // Form submission
+      fetch(`/user-posts?userId=${userId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch posts');
+          return response.json();
+        })
+        .then(posts => {
+          if (posts.length === 0) {
+            postsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">No posts found</p>';
+            return;
+          }
+          
+          postsContainer.innerHTML = '';
+          
+          posts.forEach(post => {
+            const card = document.createElement('div');
+            card.className = 'post-card';
+            card.dataset.id = post.id;
+            
+            const img = document.createElement('img');
+            img.src = post.media_url || 'https://via.placeholder.com/300?text=Instagram+Post';
+            img.alt = 'Post thumbnail';
+            
+            const caption = document.createElement('div');
+            caption.className = 'post-card-caption';
+            caption.textContent = post.caption ? 
+              post.caption.substring(0, 30) + (post.caption.length > 30 ? '...' : '') : 
+              'Untitled post';
+            
+            card.appendChild(img);
+            card.appendChild(caption);
+            
+            card.addEventListener('click', () => {
+              document.querySelectorAll('.post-card').forEach(c => c.classList.remove('selected'));
+              card.classList.add('selected');
+              document.getElementById('postId').value = post.id;
+            });
+            
+            postsContainer.appendChild(card);
+          });
+        })
+        .catch(error => {
+          console.error('Posts fetch error:', error);
+          postsContainer.innerHTML = '<p style="padding: 20px; text-align: center; color: var(--error);">Failed to load posts</p>';
+        });
+    }
+    
     document.getElementById('configForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -971,26 +524,35 @@
         return;
       }
       
-      statusEl.textContent = '💾 Saving configuration...';
-      statusEl.className = 'status';
-      statusEl.style.display = 'block';
-      
-      // Simulate save delay
-      setTimeout(() => {
-        statusEl.textContent = '✅ Configuration saved successfully!';
-        statusEl.className = 'status success';
+      try {
+        const result = await fetch('/configure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, postId, keyword, response })
+        });
         
-        // Update the keyword and message in CONFIG
-        CONFIG.KEYWORD = keyword;
-        CONFIG.DM_MESSAGE = response;
+        if (!result.ok) {
+          const errorData = await result.json();
+          throw new Error(errorData.error || 'Failed to save configuration');
+        }
         
-        // Update displayed values
-        document.getElementById('keyword-display').textContent = CONFIG.KEYWORD;
-        document.getElementById('message-display').textContent = CONFIG.DM_MESSAGE;
-      }, 1000);
+        const data = await result.json();
+        if (data.success) {
+          statusEl.textContent = 'Configuration saved successfully!';
+          statusEl.className = 'status success';
+          statusEl.style.display = 'block';
+          
+          setTimeout(() => {
+            statusEl.style.display = 'none';
+          }, 3000);
+        }
+      } catch (error) {
+        statusEl.textContent = error.message || 'Error saving configuration. Please try again.';
+        statusEl.className = 'status error';
+        statusEl.style.display = 'block';
+      }
     });
-
-    // Load comments button
+    
     document.getElementById('viewCommentsBtn').addEventListener('click', () => {
       const postId = document.getElementById('postId').value;
       if (!postId) {
@@ -998,47 +560,52 @@
         return;
       }
       
-      loadComments();
-      document.getElementById('commentsSection').style.display = 'block';
+      loadPostComments(postId);
     });
 
-    // Load sample comments
-    function loadComments() {
+    function loadPostComments(postId) {
       const commentsContainer = document.getElementById('commentsContainer');
-      commentsContainer.innerHTML = '';
+      commentsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Loading comments...</p>';
+      document.getElementById('commentsSection').style.display = 'block';
       
-      sampleComments.forEach(comment => {
-        const commentEl = document.createElement('div');
-        commentEl.className = 'comment-item';
-        
-        commentEl.innerHTML = `
-          <input type="checkbox" class="user-checkbox" data-username="${comment.username}">
-          <div class="comment-info">
-            <strong>${comment.username}</strong>
-            <div>${comment.text}</div>
-            <small>${new Date(comment.timestamp).toLocaleString()}</small>
-          </div>
-        `;
-        
-        commentsContainer.appendChild(commentEl);
-      });
+      fetch(`/post-comments?userId=${userId}&postId=${postId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch comments');
+          return response.json();
+        })
+        .then(comments => {
+          if (comments.length === 0) {
+            commentsContainer.innerHTML = '<p style="padding: 20px; text-align: center;">No comments found for this post</p>';
+            return;
+          }
+          
+          commentsContainer.innerHTML = '';
+          
+          comments.forEach(comment => {
+            const commentEl = document.createElement('div');
+            commentEl.className = 'comment-item';
+            
+            commentEl.innerHTML = `
+              <input type="checkbox" class="user-checkbox" data-username="${comment.username}" 
+                     style="margin-right: 10px;">
+              <div class="comment-info">
+                <strong>${comment.username}</strong>
+                <div>${comment.text}</div>
+                <small>${new Date(comment.timestamp).toLocaleString()}</small>
+              </div>
+            `;
+            
+            commentsContainer.appendChild(commentEl);
+          });
+        })
+        .catch(error => {
+          console.error('Comments fetch error:', error);
+          commentsContainer.innerHTML = `<p style="padding: 20px; text-align: center; color: var(--error);">Error loading comments: ${error.message}</p>`;
+        });
     }
 
-    // Comment selection
-    document.addEventListener('change', (e) => {
-      if (e.target.classList.contains('user-checkbox')) {
-        const selectedCount = document.querySelectorAll('.user-checkbox:checked').length;
-        document.getElementById('sendSelectedBtn').disabled = selectedCount === 0;
-        document.getElementById('sendSelectedBtn').innerHTML = 
-          `<i class="fas fa-paper-plane"></i> Send to ${selectedCount} Selected Users`;
-      }
-    });
-
-    // Send messages
     document.getElementById('sendSelectedBtn').addEventListener('click', async () => {
       const message = document.getElementById('manualMessage').value;
-      const statusEl = document.getElementById('manualMessageStatus');
-      
       if (!message) {
         alert('Please enter a message');
         return;
@@ -1052,20 +619,37 @@
         return;
       }
       
-      statusEl.textContent = `✈️ Sending messages to ${selectedUsers.length} users...`;
+      const statusEl = document.getElementById('manualMessageStatus');
+      statusEl.textContent = `Sending messages to ${selectedUsers.length} users...`;
       statusEl.className = 'status';
       statusEl.style.display = 'block';
       
-      // Simulate sending delay
-      setTimeout(() => {
-        statusEl.textContent = `✅ Successfully sent messages to ${selectedUsers.length} users!`;
+      try {
+        for (const username of selectedUsers) {
+          await fetch('/send-manual-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, username, message })
+          });
+        }
+        
+        statusEl.textContent = `Successfully sent messages to ${selectedUsers.length} users!`;
         statusEl.className = 'status success';
         
         document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
-        document.getElementById('sendSelectedBtn').innerHTML = 
-          `<i class="fas fa-paper-plane"></i> Send to Selected Users`;
+        document.getElementById('manualMessage').value = '';
         document.getElementById('sendSelectedBtn').disabled = true;
-      }, 1500);
+      } catch (error) {
+        statusEl.textContent = `Error sending messages: ${error.message}`;
+        statusEl.className = 'status error';
+      }
+    });
+
+    document.addEventListener('change', (e) => {
+      if (e.target.classList.contains('user-checkbox')) {
+        const selectedCount = document.querySelectorAll('.user-checkbox:checked').length;
+        document.getElementById('sendSelectedBtn').disabled = selectedCount === 0;
+      }
     });
   </script>
 </body>
