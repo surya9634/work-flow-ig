@@ -386,7 +386,7 @@ app.get('/user-posts', async (req, res) => {
       return res.status(401).json({ error: 'Instagram token is invalid or expired' });
     }
 
-    const response = await axios.get(`https://graph.instagram.com/v19.0/me/media`, {
+    const response = await axios.get(`https://graph.instagram.com/me/media`, {
       params: {
         fields: 'id,caption,media_url,media_type,thumbnail_url',
         access_token: user.access_token
@@ -410,6 +410,8 @@ app.get('/user-posts', async (req, res) => {
         errorMessage = 'Token expired - please re-authenticate';
       } else if (err.response.status === 400) {
         errorMessage = 'Invalid request to Instagram API';
+      } else if (err.response.status === 429) {
+        errorMessage = 'Rate limit exceeded - please try again later';
       }
     }
     
@@ -433,10 +435,11 @@ app.get('/post-comments', async (req, res) => {
       return res.status(401).json({ error: 'Instagram token is invalid or expired' });
     }
 
-    const response = await axios.get(`https://graph.instagram.com/v19.0/${postId}/comments`, {
+    const response = await axios.get(`https://graph.instagram.com/${postId}/comments`, {
       params: {
         fields: 'id,text,username,timestamp',
-        access_token: user.access_token
+        access_token: user.access_token,
+        limit: 25 // Reduced limit to prevent rate limiting
       }
     });
 
@@ -450,6 +453,8 @@ app.get('/post-comments', async (req, res) => {
         errorMessage = 'Token expired - please re-authenticate';
       } else if (err.response.status === 400) {
         errorMessage = 'Invalid request to Instagram API';
+      } else if (err.response.status === 429) {
+        errorMessage = 'Rate limit exceeded - please try again later';
       }
     }
     
@@ -496,63 +501,12 @@ app.post('/configure', async (req, res) => {
   }
 });
 
-app.post('/send-manual-message', async (req, res) => {
-  try {
-    const { userId, username, message } = req.body;
-    if (!userId || !username || !message) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const user = users.get(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    console.log(`✉️ Sending manual DM to ${username}: ${message.substring(0, 50)}...`);
-    
-    // Verify token before sending
-    const tokenValid = await verifyToken(userId);
-    if (!tokenValid) {
-      return res.status(401).json({ error: 'Instagram token is invalid or expired' });
-    }
-
-    await axios.post(`https://graph.instagram.com/v19.0/${user.instagram_id}/messages`, {
-      recipient: { username },
-      message: { text: message }
-    }, {
-      headers: {
-        'Authorization': `Bearer ${user.access_token}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 15000
-    });
-
-    console.log(`✅ Manual DM sent to ${username}`);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('🔥 Manual message error:', serializeError(err));
-    
-    let errorMessage = 'Error sending message';
-    if (err.response) {
-      if (err.response.status === 400) {
-        errorMessage = 'Invalid request to Instagram API';
-      } else if (err.response.status === 401) {
-        errorMessage = 'Instagram token is invalid or expired';
-      } else if (err.response.status === 403) {
-        errorMessage = 'Permission denied by Instagram';
-      } else if (err.response.status === 190) {
-        errorMessage = 'Token expired - please re-authenticate';
-      }
-    }
-    
-    res.status(500).json({ error: errorMessage });
-  }
-});
-
 app.get('/user-info', (req, res) => {
   try {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: 'User ID required' });
 
-    const user = users.get(user极狐Id);
+    const user = users.get(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.json({
