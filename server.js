@@ -5,283 +5,469 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 10000;
 
-const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID;
-const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback';
-const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'WORKFLOW_VERIFY_TOKEN';
+console.log('🚀 Starting Workflow SaaS Server');
+console.log('--------------------------------');
+console.log('Environment Configuration:');
+console.log(`PORT: ${port}`);
+console.log(`INSTAGRAM_APP_ID: ${process.env.INSTAGRAM_APP_ID ? 'Set' : '❌ MISSING'}`);
+console.log(`INSTAGRAM_APP_SECRET: ${process.env.INSTAGRAM_APP_SECRET ? 'Set' : '❌ MISSING'}`);
+console.log(`REDIRECT_URI: ${process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback'}`);
+console.log('--------------------------------');
 
-if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
-  console.error('❌ Missing Instagram App credentials in env');
+if (!process.env.INSTAGRAM_APP_ID) {
+  console.error('❌ Critical Error: INSTAGRAM_APP_ID environment variable is missing!');
+  process.exit(1);
+}
+
+if (!process.env.INSTAGRAM_APP_SECRET) {
+  console.error('❌ Critical Error: INSTAGRAM_APP_SECRET environment variable is missing!');
   process.exit(1);
 }
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ========== In-Memory Stores ==========
-const users = new Map(); // key = instagram_id
-const configurations = new Map(); // key = userId
+const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID;
+const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI || 'https://work-flow-ig-1.onrender.com/auth/callback';
+const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'WORKFLOW_VERIFY_TOKEN';
+
+const users = new Map();
+const configurations = new Map();
 const usedAuthorizationCodes = new Set();
 
-// ========== Helper ==========
 function serializeError(err) {
   if (!err) return 'Unknown error';
+  
   if (err instanceof Error) {
-    return JSON.stringify({
+    const errorObj = {
       name: err.name,
       message: err.message,
-      stack: err.stack,
-      response: err.response?.data
-    }, null, 2);
+      stack: err.stack
+    };
+    
+    if (err.response) {
+      errorObj.response = {
+        status: err.response.status,
+        data: err.response.data,
+        headers: err.response.headers
+      };
+    }
+    
+    return JSON.stringify(errorObj, null, 2);
   }
+  
   return JSON.stringify(err, null, 2);
 }
 
-// ========== Routes ==========
-
-// Redirect to IG Auth
-app.get('/auth/instagram', (req, res) => {
-  const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=instagram_basic,instagram_content_publish,instagram_manage_insights,pages_show_list,instagram_manage_messages`;
-  console.log('🔗 Redirecting to:', authUrl);
-  res.redirect(authUrl);
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Instagram OAuth Callback
-app.get('/auth/callback', async (req, res) => {
+app.get('/dashboard.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/auth/instagram', (req, res) => {
   try {
-    const { code, error } = req.query;
-    if (error || !code) throw new Error(`OAuth error: ${error || 'Missing code'}`);
-
-    if (usedAuthorizationCodes.has(code)) {
-      return res.redirect('/');
-    }
-    usedAuthorizationCodes.add(code);
-
-    const tokenData = new URLSearchParams({
-      client_id: INSTAGRAM_APP_ID,
-      client_secret: INSTAGRAM_APP_SECRET,
-      grant_type: 'authorization_code',
-      redirect_uri: REDIRECT_URI,
-      code
-    });
-
-    // Exchange IG code
-    const tokenRes = await axios.post('https://api.instagram.com/oauth/access_token', tokenData, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    const igUserAccessToken = tokenRes.data.access_token;
-    const fbUserId = tokenRes.data.user_id;
-
-    // Get Facebook Pages
-    const pagesRes = await axios.get(`https://graph.facebook.com/v19.0/${fbUserId}/accounts`, {
-      params: { access_token: igUserAccessToken }
-    });
-
-    const page = pagesRes.data.data?.[0];
-    if (!page) throw new Error('No Facebook Page connected to this IG user');
-
-    const pageAccessToken = page.access_token;
-    const pageId = page.id;
-
-    // Get IG Business Account
-    const igRes = await axios.get(`https://graph.facebook.com/v19.0/${pageId}`, {
-      params: {
-        fields: 'instagram_business_account',
-        access_token: pageAccessToken
-      }
-    });
-
-    const instagramId = igRes.data.instagram_business_account?.id;
-    if (!instagramId) throw new Error('No IG Business Account connected to Page');
-
-    // Get profile
-    const profileRes = await axios.get(`https://graph.facebook.com/v19.0/${instagramId}`, {
-      params: {
-        fields: 'username,profile_picture_url',
-        access_token: pageAccessToken
-      }
-    });
-
-    const username = profileRes.data.username;
-    const profilePic = profileRes.data.profile_picture_url;
-
-    const userData = {
-      access_token: pageAccessToken,
-      username,
-      profile_pic: profilePic,
-      instagram_id: instagramId,
-      page_id: pageId,
-      code,
-      last_login: new Date()
-    };
-
-    users.set(instagramId, userData);
-    res.redirect(`/dashboard.html?user_id=${instagramId}`);
+    const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
+    
+    console.log('🔗 Redirecting to Instagram Auth URL:', authUrl);
+    res.redirect(authUrl);
   } catch (err) {
-    console.error('🔥 Auth error:', serializeError(err));
-    res.redirect(`/?error=auth_failed&message=${encodeURIComponent(err.message || 'Login failed')}`);
+    console.error('🔥 Login redirect error:', serializeError(err));
+    res.status(500).send('Server error during Instagram login');
   }
 });
 
-// Send Manual DM
-app.post('/send-manual-message', async (req, res) => {
+app.get('/auth/callback', async (req, res) => {
   try {
-    const { userId, username, message } = req.body;
+    console.log('📬 Received Instagram callback:', req.query);
+    const { code, error, error_reason } = req.query;
+    
+    if (error) {
+      throw new Error(`OAuth error: ${error_reason || 'unknown'} - ${error}`);
+    }
+
+    if (!code) {
+      throw new Error('Authorization code is missing');
+    }
+
+    if (usedAuthorizationCodes.has(code)) {
+      console.warn('⚠️ Authorization code reuse detected:', code);
+      for (const [userId, userData] of users.entries()) {
+        if (userData.code === code) {
+          console.log(`↩️ Redirecting reused code to existing user: ${userId}`);
+          return res.redirect(`/dashboard.html?user_id=${userId}`);
+        }
+      }
+      throw new Error('Authorization code has already been used');
+    }
+    
+    usedAuthorizationCodes.add(code);
+
+    const tokenData = new URLSearchParams();
+    tokenData.append('client_id', INSTAGRAM_APP_ID);
+    tokenData.append('client_secret', INSTAGRAM_APP_SECRET);
+    tokenData.append('grant_type', 'authorization_code');
+    tokenData.append('redirect_uri', REDIRECT_URI);
+    tokenData.append('code', code);
+
+    console.log('🔄 Exchanging code for access token...');
+    const tokenResponse = await axios.post(
+      'https://api.instagram.com/oauth/access_token',
+      tokenData,
+      {
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-IG-App-ID': INSTAGRAM_APP_ID
+        },
+        timeout: 15000
+      }
+    );
+
+    if (!tokenResponse.data || !tokenResponse.data.access_token) {
+      throw new Error('Invalid token response: ' + JSON.stringify(tokenResponse.data));
+    }
+
+    console.log('✅ Token exchange successful');
+    const access_token = tokenResponse.data.access_token;
+    const user_id = String(tokenResponse.data.user_id);
+
+    let profileResponse;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelays = [2000, 4000, 8000];
+    
+    while (retryCount <= maxRetries) {
+      try {
+        console.log(`👤 Fetching user profile (attempt ${retryCount + 1} of ${maxRetries + 1})...`);
+        profileResponse = await axios.get(`https://graph.instagram.com/me`, {
+          params: { 
+            fields: 'id,username,profile_picture_url',
+            access_token: access_token
+          },
+          headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID },
+          timeout: 20000
+        });
+
+        if (!profileResponse.data || !profileResponse.data.username) {
+          throw new Error('Invalid profile response: ' + JSON.stringify(profileResponse.data));
+        }
+        
+        break;
+      } catch (err) {
+        if (retryCount >= maxRetries) {
+          console.error(`🔥 Failed after ${maxRetries + 1} attempts`);
+          throw err;
+        }
+        
+        const delay = retryDelays[retryCount];
+        console.log(`⚠️ Profile fetch failed, retrying in ${delay/1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        retryCount++;
+      }
+    }
+
+    console.log(`👋 User authenticated: ${profileResponse.data.username} (ID: ${user_id})`);
+    
+    const userData = {
+      access_token,
+      username: profileResponse.data.username,
+      profile_pic: profileResponse.data.profile_picture_url,
+      instagram_id: user_id,
+      last_login: new Date(),
+      code
+    };
+    users.set(user_id, userData);
+
+    res.redirect(`/dashboard.html?user_id=${user_id}`);
+  } catch (err) {
+    const errorMsg = serializeError(err);
+    console.error('🔥 Authentication error:', errorMsg);
+    
+    let userMessage = 'Instagram login failed. Please try again.';
+    
+    if (err.response) {
+      if (err.response.data && err.response.data.error_message) {
+        userMessage = err.response.data.error_message;
+      } else if (err.response.status === 400) {
+        userMessage = 'Invalid request to Instagram API';
+      } else if (err.response.status === 500) {
+        userMessage = 'Temporary Instagram API issue - please try again later';
+      }
+    } else if (err.message.includes('timeout')) {
+      userMessage = 'Connection to Instagram timed out';
+    } else if (err.message.includes('Invalid profile response')) {
+      userMessage = 'Could not retrieve your Instagram profile';
+    } else if (err.message.includes('Authorization code has already been used')) {
+      userMessage = 'This login link has already been used. Please start a new login.';
+    }
+    
+    res.redirect(`/?error=auth_failed&message=${encodeURIComponent(userMessage)}`);
+  }
+});
+
+app.get('/user-posts', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'User ID required' });
+
     const user = users.get(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    const response = await axios.get(`https://graph.instagram.com/v19.0/me/media`, {
+      params: {
+        fields: 'id,caption,media_url,media_type,thumbnail_url',
+        access_token: user.access_token
+      },
+      headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID }
+    });
+
+    const processedPosts = response.data.data.map(post => {
+      return {
+        id: post.id,
+        caption: post.caption || '',
+        media_url: post.media_type === 'VIDEO' ? (post.thumbnail_url || '') : post.media_url,
+        media_type: post.media_type
+      };
+    });
+
+    res.json(processedPosts);
+  } catch (err) {
+    console.error('🔥 User posts error:', serializeError(err));
+    res.status(500).json({ error: 'Error fetching posts' });
+  }
+});
+
+app.get('/post-comments', async (req, res) => {
+  try {
+    const { userId, postId } = req.query;
+    if (!userId || !postId) {
+      return res.status(400).json({ error: 'User ID and Post ID required' });
+    }
+
+    const user = users.get(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const response = await axios.get(`https://graph.instagram.com/v19.0/${postId}/comments`, {
+      params: {
+        fields: 'id,text,username,timestamp',
+        access_token: user.access_token
+      },
+      headers: { 'X-IG-App-ID': INSTAGRAM_APP_ID }
+    });
+
+    res.json(response.data.data || []);
+  } catch (err) {
+    console.error('🔥 Post comments error:', serializeError(err));
+    res.status(500).json({ error: 'Error fetching comments' });
+  }
+});
+
+app.post('/configure', async (req, res) => {
+  try {
+    const { userId, postId, keyword, response } = req.body;
+    if (!userId || !postId || !keyword || !response) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const user = users.get(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    configurations.set(userId, { postId, keyword, response });
+    console.log(`⚙️ Configuration saved for user ${userId} on post ${postId}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('🔥 Configuration error:', serializeError(err));
+    
+    let errorMessage = 'Server error';
+    if (err.response) {
+      if (err.response.status === 400) {
+        errorMessage = 'Invalid request to Instagram API';
+      } else if (err.response.status === 404) {
+        errorMessage = 'Post not found';
+      }
+    } else if (err.message.includes('timeout')) {
+      errorMessage = 'Connection to Instagram timed out';
+    }
+    
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+app.post('/send-manual-message', async (req, res) => {
+  try {
+    const { userId, username, message } = req.body;
+    if (!userId || !username || !message) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const user = users.get(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    console.log(`✉️ Sending manual DM to ${username}: ${message.substring(0, 50)}...`);
+    
     await axios.post(`https://graph.facebook.com/v19.0/${user.instagram_id}/messages`, {
       recipient: { username },
       message: { text: message }
     }, {
       headers: {
-        Authorization: `Bearer ${user.access_token}`,
+        'Authorization': `Bearer ${user.access_token}`,
         'Content-Type': 'application/json',
         'X-IG-App-ID': INSTAGRAM_APP_ID
-      }
+      },
+      timeout: 15000
     });
 
+    console.log(`✅ Manual DM sent to ${username}`);
     res.json({ success: true });
   } catch (err) {
-    console.error('🔥 DM error:', serializeError(err));
-    res.status(500).json({ error: 'Failed to send message' });
+    console.error('🔥 Manual message error:', serializeError(err));
+    res.status(500).json({ error: 'Error sending message' });
   }
 });
 
-// Posts
-app.get('/user-posts', async (req, res) => {
+app.get('/user-info', (req, res) => {
   try {
-    const user = users.get(req.query.userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'User ID required' });
 
-    const postRes = await axios.get(`https://graph.instagram.com/me/media`, {
-      params: {
-        fields: 'id,caption,media_type,media_url,thumbnail_url',
-        access_token: user.access_token
-      }
-    });
-
-    const posts = postRes.data.data.map(post => ({
-      id: post.id,
-      caption: post.caption || '',
-      media_url: post.media_type === 'VIDEO' ? (post.thumbnail_url || '') : post.media_url,
-      media_type: post.media_type
-    }));
-
-    res.json(posts);
-  } catch (err) {
-    console.error('🔥 Posts error:', serializeError(err));
-    res.status(500).json({ error: 'Failed to fetch posts' });
-  }
-});
-
-// Comments
-app.get('/post-comments', async (req, res) => {
-  try {
-    const { userId, postId } = req.query;
     const user = users.get(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const resComments = await axios.get(`https://graph.facebook.com/v19.0/${postId}/comments`, {
-      params: {
-        fields: 'id,text,username,timestamp',
-        access_token: user.access_token
-      }
+    res.json({
+      username: user.username,
+      instagram_id: user.instagram_id,
+      profile_pic: user.profile_pic
     });
-
-    res.json(resComments.data.data || []);
   } catch (err) {
-    console.error('🔥 Comments error:', serializeError(err));
-    res.status(500).json({ error: 'Failed to fetch comments' });
+    console.error('🔥 User info error:', serializeError(err));
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Save automation config
-app.post('/configure', (req, res) => {
-  const { userId, postId, keyword, response } = req.body;
-  if (!userId || !postId || !keyword || !response)
-    return res.status(400).json({ error: 'Missing required fields' });
-
-  configurations.set(userId, { postId, keyword, response });
-  res.json({ success: true });
-});
-
-// Webhook Verification
 app.get('/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
+  try {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
 
-  if (mode === 'subscribe' && token === WEBHOOK_VERIFY_TOKEN) {
-    console.log('✅ Webhook verified');
-    return res.status(200).send(challenge);
+    console.log('🔔 Webhook verification request:', req.query);
+
+    if (mode === 'subscribe' && token === WEBHOOK_VERIFY_TOKEN) {
+      console.log('✅ Webhook verified successfully');
+      res.status(200).send(challenge);
+    } else {
+      console.error(`❌ Webhook verification failed. Received token: ${token}, Expected: ${WEBHOOK_VERIFY_TOKEN}`);
+      res.sendStatus(403);
+    }
+  } catch (err) {
+    console.error('🔥 Webhook verification error:', serializeError(err));
+    res.sendStatus(500);
   }
-
-  console.error('❌ Webhook failed');
-  res.sendStatus(403);
 });
 
-// Webhook Receiver
 app.post('/webhook', async (req, res) => {
   try {
-    const entry = req.body.entry || [];
-    for (const event of entry) {
-      const commentData = event.changes?.[0]?.value;
-      const media_id = commentData.media_id;
-      const text = commentData.text;
-      const username = commentData.username;
+    console.log('📩 Received webhook event:', req.body);
+    const { object, entry } = req.body;
 
-      for (const [userId, config] of configurations.entries()) {
-        if (config.postId !== media_id) continue;
-        if (!text.toLowerCase().includes(config.keyword.toLowerCase())) continue;
+    if (object === 'instagram') {
+      for (const event of entry) {
+        if (event.changes && event.changes[0].field === 'comments') {
+          const commentData = event.changes[0].value;
+          await handleCommentEvent(commentData);
+        }
+      }
+    }
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('🔥 Webhook processing error:', serializeError(err));
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+async function handleCommentEvent(commentData) {
+  try {
+    const { media_id, text, username } = commentData;
+    console.log(`💬 New comment from ${username} on post ${media_id}: ${text}`);
+
+    for (const [userId, config] of configurations.entries()) {
+      try {
+        if (media_id !== config.postId) continue;
 
         const user = users.get(userId);
         if (!user) continue;
 
-        const msg = config.response.replace(/{username}/g, username);
-        await axios.post(`https://graph.facebook.com/v19.0/${user.instagram_id}/messages`, {
-          recipient: { username },
-          message: { text: msg }
-        }, {
-          headers: {
-            Authorization: `Bearer ${user.access_token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        if (text.toLowerCase().includes(config.keyword.toLowerCase())) {
+          console.log(`🔑 Keyword match: "${config.keyword}" in comment by ${username}`);
+          
+          const messageText = config.response.replace(/{username}/g, username);
+          console.log(`✉️ Sending DM to ${username}: ${messageText.substring(0, 50)}...`);
+          
+          await axios.post(`https://graph.facebook.com/v19.0/${user.instagram_id}/messages`, {
+            recipient: { username },
+            message: { 
+              text: messageText
+            }
+          }, {
+            headers: {
+              'Authorization': `Bearer ${user.access_token}`,
+              'Content-Type': 'application/json',
+              'X-IG-App-ID': INSTAGRAM_APP_ID
+            },
+            timeout: 15000
+          });
 
-        console.log(`✅ Auto-sent to ${username} on match`);
+          console.log(`✅ DM sent to ${username} for keyword "${config.keyword}"`);
+        }
+      } catch (err) {
+        console.error(`🔥 Comment handling error for user ${userId}:`, serializeError(err));
       }
     }
-
-    res.sendStatus(200);
   } catch (err) {
-    console.error('🔥 Webhook handler error:', serializeError(err));
-    res.status(500).json({ error: 'Webhook error' });
+    console.error('🔥 Event processing error:', serializeError(err));
+  }
+}
+
+app.get('/debug', (req, res) => {
+  try {
+    res.json({
+      status: 'running',
+      app_id: INSTAGRAM_APP_ID,
+      redirect_uri: REDIRECT_URI,
+      users_count: users.size,
+      configs_count: configurations.size,
+      environment: process.env.NODE_ENV,
+      server_time: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('🔥 Debug endpoint error:', serializeError(err));
+    res.status(500).json({ error: 'Debug information unavailable' });
   }
 });
 
-// User Info
-app.get('/user-info', (req, res) => {
-  const user = users.get(req.query.userId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-
-  res.json({
-    username: user.username,
-    instagram_id: user.instagram_id,
-    profile_pic: user.profile_pic
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    version: '1.0.0',
+    uptime: process.uptime()
   });
 });
 
-// Static routes
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-app.get('/dashboard.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+app.use((err, req, res, next) => {
+  console.error('🔥 Global error handler:', serializeError(err));
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start
 app.listen(port, () => {
-  console.log('🚀 Server running on port', port);
+  console.log('--------------------------------');
+  console.log(`🚀 Server running on port ${port}`);
+  console.log(`🔗 Redirect URI: ${REDIRECT_URI}`);
+  if (process.env.RENDER) {
+    console.log(`🌐 Live at: https://${process.env.RENDER_EXTERNAL_HOSTNAME}`);
+  }
+  console.log('--------------------------------');
+  console.log('✅ Ready for Instagram logins');
 });
